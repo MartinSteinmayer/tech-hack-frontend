@@ -16,6 +16,7 @@ import {
     FiBarChart2,
     FiMessageSquare,
     FiShield,
+    FiPlusCircle,
     FiShoppingCart
 } from 'react-icons/fi';
 import { supplierApi } from '../../../lib/api';
@@ -247,8 +248,8 @@ export default function SupplierDetailsPage() {
                             <div>
                                 <p className="text-xs text-gray-500">Compliance</p>
                                 <p className={`text-sm font-medium ${supplier.complianceStatus === 'compliant' ? 'text-green-600' :
-                                        supplier.complianceStatus === 'review' ? 'text-yellow-600' :
-                                            'text-red-600'
+                                    supplier.complianceStatus === 'review' ? 'text-yellow-600' :
+                                        'text-red-600'
                                     }`}>
                                     {supplier.complianceStatus === 'compliant' ? 'Compliant' :
                                         supplier.complianceStatus === 'review' ? 'Under Review' :
@@ -283,8 +284,8 @@ export default function SupplierDetailsPage() {
                     <nav className="flex overflow-x-auto">
                         <button
                             className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'overview'
-                                    ? 'border-b-2 border-blue-500 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                             onClick={() => setActiveTab('overview')}
                         >
@@ -292,8 +293,8 @@ export default function SupplierDetailsPage() {
                         </button>
                         <button
                             className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'performance'
-                                    ? 'border-b-2 border-blue-500 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                             onClick={() => setActiveTab('performance')}
                         >
@@ -301,8 +302,8 @@ export default function SupplierDetailsPage() {
                         </button>
                         <button
                             className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'compliance'
-                                    ? 'border-b-2 border-blue-500 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                             onClick={() => setActiveTab('compliance')}
                         >
@@ -310,8 +311,8 @@ export default function SupplierDetailsPage() {
                         </button>
                         <button
                             className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'products'
-                                    ? 'border-b-2 border-blue-500 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                             onClick={() => setActiveTab('products')}
                         >
@@ -319,8 +320,8 @@ export default function SupplierDetailsPage() {
                         </button>
                         <button
                             className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'orders'
-                                    ? 'border-b-2 border-blue-500 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                             onClick={() => setActiveTab('orders')}
                         >
@@ -378,8 +379,8 @@ export default function SupplierDetailsPage() {
                                             <div className="flex items-center justify-between mb-2">
                                                 <h4 className="font-medium">{risk.category} Risk</h4>
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${risk.level === 'low' ? 'bg-green-100 text-green-800' :
-                                                        risk.level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-red-100 text-red-800'
+                                                    risk.level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-red-100 text-red-800'
                                                     }`}>
                                                     {risk.level.charAt(0).toUpperCase() + risk.level.slice(1)}
                                                 </span>
@@ -764,12 +765,12 @@ export default function SupplierDetailsPage() {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'Delivered'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : order.status === 'In Transit'
-                                                                    ? 'bg-blue-100 text-blue-800'
-                                                                    : order.status === 'Processing'
-                                                                        ? 'bg-yellow-100 text-yellow-800'
-                                                                        : 'bg-gray-100 text-gray-800'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : order.status === 'In Transit'
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : order.status === 'Processing'
+                                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                                    : 'bg-gray-100 text-gray-800'
                                                             }`}>
                                                             {order.status}
                                                         </span>
