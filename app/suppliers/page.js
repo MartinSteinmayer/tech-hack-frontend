@@ -105,10 +105,6 @@ export default function SuppliersPage() {
                         <FiPlusCircle className="mr-2" />
                         Add Supplier
                     </Link>
-                    <Link href="/suppliers/search" className="btn-primary flex items-center">
-                        <FiSearch className="mr-2" />
-                        Advanced Search
-                    </Link>
                 </div>
             </div>
 
