@@ -398,7 +398,7 @@ export default function NewOrderPage() {
                                     name="supplierId"
                                     value={formData.supplierId}
                                     onChange={handleSupplierChange}
-                                    className={`form-select ${validationErrors.supplierId ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                    className={`form-select cursor-pointer ${validationErrors.supplierId ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                                 >
                                     <option value="">-- Select Supplier --</option>
                                     {suppliers.map(supplier => (
@@ -465,7 +465,7 @@ export default function NewOrderPage() {
                                     name="paymentTerms"
                                     value={formData.paymentTerms}
                                     onChange={handleChange}
-                                    className="form-select"
+                                    className="form-select cursor-pointer"
                                 >
                                     <option value="Net 15">Net 15</option>
                                     <option value="Net 30">Net 30</option>
@@ -554,7 +554,7 @@ export default function NewOrderPage() {
                                                 <select
                                                     value={item.productId}
                                                     onChange={(e) => handleProductChange(index, e)}
-                                                    className={`form-select ${validationErrors[`item_${index}_productId`] ? 'border-red-300' : ''}`}
+                                                    className={`form-select cursor-pointer ${validationErrors[`item_${index}_productId`] ? 'border-red-300' : ''}`}
                                                     disabled={!formData.supplierId}
                                                 >
                                                     <option value="">-- Select Product --</option>

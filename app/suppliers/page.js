@@ -149,7 +149,7 @@ export default function SuppliersPage() {
                                 Category
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.category}
                                 onChange={(e) => handleFilterChange('category', e.target.value)}
                             >
@@ -168,7 +168,7 @@ export default function SuppliersPage() {
                                 Location
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.location}
                                 onChange={(e) => handleFilterChange('location', e.target.value)}
                             >
@@ -187,7 +187,7 @@ export default function SuppliersPage() {
                                 Minimum Rating
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.rating}
                                 onChange={(e) => handleFilterChange('rating', e.target.value)}
                             >
@@ -205,7 +205,7 @@ export default function SuppliersPage() {
                                 Compliance Status
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.complianceStatus}
                                 onChange={(e) => handleFilterChange('complianceStatus', e.target.value)}
                             >

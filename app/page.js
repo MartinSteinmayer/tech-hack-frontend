@@ -32,7 +32,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
                 <div className="flex space-x-3">
-                <Link href="/report" className="btn-primary flex items-center">
+                    <Link href="/report" className="btn-primary flex items-center">
                         <FiBarChart2 className="mr-2" />
                         Go to Data Report
                     </Link>
@@ -159,7 +159,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-medium text-gray-800 mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Link
-                        href="/suppliers/search"
+                        href="/suppliers/new"
                         className="flex items-center justify-center p-4 border rounded-md hover:bg-blue-50 transition-colors"
                     >
                         <span className="text-blue-600 mr-2">

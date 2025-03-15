@@ -412,7 +412,7 @@ Contract Duration: 24 months with quarterly pricing reviews
                                         name="supplierId"
                                         value={formData.supplierId}
                                         onChange={handleSupplierChange}
-                                        className="form-select"
+                                        className="form-select cursor-pointer"
                                         required
                                     >
                                         <option value="">-- Select a Supplier --</option>
@@ -499,7 +499,7 @@ Contract Duration: 24 months with quarterly pricing reviews
                                     name="negotiationContext"
                                     value={formData.negotiationContext}
                                     onChange={handleChange}
-                                    className="form-select"
+                                    className="form-select cursor-pointer"
                                 >
                                     <option value="">-- Select Context --</option>
                                     <option value="new">New Relationship</option>

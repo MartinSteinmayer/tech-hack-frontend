@@ -214,7 +214,7 @@ export default function CompliancePage() {
 
                     <div className="flex items-center space-x-4">
                         <div className="relative">
-                            <select className="form-select">
+                            <select className="form-select cursor-pointer">
                                 <option value="">All Suppliers</option>
                                 <option value="1">ElectroTech Industries</option>
                                 <option value="2">Global Packaging Solutions</option>
@@ -225,7 +225,7 @@ export default function CompliancePage() {
                         </div>
 
                         <div className="relative">
-                            <select className="form-select">
+                            <select className="form-select cursor-pointer">
                                 <option value="">All Categories</option>
                                 <option value="Quality Management">Quality Management</option>
                                 <option value="Environmental">Environmental</option>
@@ -238,7 +238,7 @@ export default function CompliancePage() {
                         </div>
 
                         <div className="relative">
-                            <select className="form-select">
+                            <select className="form-select cursor-pointer">
                                 <option value="">All Statuses</option>
                                 <option value="compliant">Compliant</option>
                                 <option value="review">Under Review</option>
