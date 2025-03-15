@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Add this import
 import { usePathname } from 'next/navigation';
 import {
     FiHome,
@@ -49,13 +50,25 @@ const Sidebar = () => {
                 {/* Logo */}
                 <div className="h-16 flex items-center justify-center border-b">
                     {!collapsed && (
-                        <Link href="/" className="text-xl font-bold text-blue-600">
-                            TACTO
+                        <Link href="/" className="flex items-center justify-center">
+                            <Image 
+                                src="/tacto.png" 
+                                alt="Tacto Logo" 
+                                width={120} 
+                                height={40} 
+                                priority 
+                            />
                         </Link>
                     )}
                     {collapsed && (
-                        <Link href="/" className="text-xl font-bold text-blue-600">
-                            T
+                        <Link href="/" className="flex items-center justify-center">
+                            <Image 
+                                src="/tacto.png" 
+                                alt="Tacto Logo" 
+                                width={32} 
+                                height={32} 
+                                priority 
+                            />
                         </Link>
                     )}
                 </div>
