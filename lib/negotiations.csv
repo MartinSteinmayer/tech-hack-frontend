@@ -1,0 +1,5 @@
+"id","supplierId","supplierName","category","startDate","status","nextAction","lastActivity","products","targetSavings","currentStage","priority","outcome","actualSavings"
+1,1,"ElectroTech Industries","Electronics","2023-09-10","active","Awaiting supplier response","2023-09-15","[""Microcontrollers"",""Sensors""]",8.5,"Counter Offer","high",,
+2,2,"Global Packaging Solutions","Packaging","2023-09-05","active","Review supplier proposal","2023-09-14","[""Custom Boxes"",""Protective Packaging""]",5.2,"Initial Proposal","medium",,
+3,3,"RawMat Suppliers Inc","Raw Materials","2023-08-28","scheduled","Kickoff meeting on 2023-09-20","2023-09-12","[""Industrial Polymers"",""Adhesives""]",7,"Planning","low",,
+4,5,"Quality Service Providers","Services","2023-08-15","completed","Implementation","2023-09-08","[""Consulting Services"",""Quality Audits""]",10,"Agreement","medium","Success",11.2

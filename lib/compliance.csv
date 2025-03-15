@@ -1,0 +1,8 @@
+"id","supplierId","supplierName","documentType","status","expiryDate","lastChecked","category","notes"
+1,1,"ElectroTech Industries","ISO 9001 Certification","compliant","2024-06-30","2023-09-12","Quality Management","Certification verified with issuing body"
+2,1,"ElectroTech Industries","Environmental Policy","compliant","2024-11-15","2023-09-12","Environmental","Document meets all requirements"
+3,2,"Global Packaging Solutions","Food Safety Certification","review","2023-10-30","2023-09-10","Product Safety","Certification expires in less than 60 days"
+4,3,"RawMat Suppliers Inc","REACH Compliance","non-compliant","2023-07-15","2023-09-05","Regulatory","Certification expired, follow-up required"
+5,4,"FastTrack Logistics","Insurance Certificate","compliant","2024-02-28","2023-09-01","Insurance","Coverage meets minimum requirements"
+6,5,"Quality Service Providers","Professional Certifications","compliant","2024-05-15","2023-08-20","Professional Qualifications","All staff certifications verified"
+7,3,"RawMat Suppliers Inc","Fair Labor Practices","review",,"2023-09-08","Social Responsibility","Additional documentation requested"

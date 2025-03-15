@@ -32,10 +32,10 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
                 <div className="flex space-x-3">
-                    <button className="btn-primary flex items-center">
+                <Link href="/report" className="btn-primary flex items-center">
                         <FiBarChart2 className="mr-2" />
-                        Generate Report
-                    </button>
+                        Go to Data Report
+                    </Link>
                 </div>
             </div>
 
