@@ -14,7 +14,7 @@ import {
     FiAlertCircle,
     FiInfo
 } from 'react-icons/fi';
-import { negotiationApi, supplierApi } from '../../../lib/api';
+import { mockSuppliers } from '@/lib/mockData';
 
 export default function DossierGeneratorPage() {
     const searchParams = useSearchParams();
@@ -35,28 +35,22 @@ export default function DossierGeneratorPage() {
         additionalNotes: ''
     });
 
-    // Mock data for suppliers
-    const mockSuppliers = [
-        { id: 1, name: 'ElectroTech Industries', category: 'Electronics' },
-        { id: 2, name: 'Global Packaging Solutions', category: 'Packaging' },
-        { id: 3, name: 'RawMat Suppliers Inc', category: 'Raw Materials' },
-        { id: 4, name: 'FastTrack Logistics', category: 'Logistics' },
-        { id: 5, name: 'Quality Service Providers', category: 'Services' },
-    ];
-
-    // Mock data for specific supplier
-    const mockSupplier = supplierId ? mockSuppliers.find(s => s.id === parseInt(supplierId)) || null : null;
-
-    // Mock data for products by supplier
-    const mockProductsBySupplier = {
-        1: ['Microcontrollers', 'Sensors', 'PCB Assemblies'],
-        2: ['Custom Boxes', 'Protective Packaging', 'Shipping Materials'],
-        3: ['Industrial Polymers', 'Adhesives', 'Metals'],
-        4: ['Express Shipping', 'Warehousing', 'Distribution'],
-        5: ['Consulting Services', 'Quality Audits', 'Training'],
+    // Get simplified supplier from mockData.js for dropdown
+    const getSimplifiedSuppliers = () => {
+        return mockSuppliers.map(supplier => ({
+            id: supplier.id,
+            name: supplier.name,
+            category: supplier.category
+        }));
     };
 
-    // Mock categories for objectives
+    // Helper to get products from mockData.js by supplier ID
+    const getProductsBySupplier = (supplierId) => {
+        const supplier = mockSuppliers.find(s => s.id === parseInt(supplierId));
+        return supplier && supplier.products ? supplier.products.map(p => p.name) : [];
+    };
+
+    // Mock categories for objectives (not in mockData.js)
     const mockCategories = [
         'Cost Reduction',
         'Quality Improvement',
@@ -70,40 +64,50 @@ export default function DossierGeneratorPage() {
         'Sustainability'
     ];
 
-    // Mock sample dossier
-    const mockDossier = {
-        supplierId: supplierId,
-        supplierName: mockSupplier?.name || 'Unknown Supplier',
-        generatedDate: new Date().toISOString(),
-        sections: [
-            {
-                title: 'Executive Summary',
-                content: `This dossier provides a comprehensive analysis of ${mockSupplier?.name || 'the supplier'} to support upcoming negotiations. The primary objectives are cost reduction, lead time improvement, and enhanced quality standards. Based on market analysis, we recommend targeting a ${formData.targetSavings || '5-8%'} cost reduction while securing improved delivery terms.`
-            },
-            {
-                title: 'Supplier Background',
-                content: `${mockSupplier?.name || 'The supplier'} is a ${mockSupplier?.category || 'major'} provider with a strong market presence. Recent financial performance shows stable growth with a healthy margin structure. The supplier has been in business for over 15 years and serves multiple industries including automotive, consumer electronics, and industrial manufacturing.`
-            },
-            {
-                title: 'Market Analysis',
-                content: `Current market conditions for ${mockSupplier?.category || 'this category'} show moderate competition with 4-5 major players. Raw material prices have decreased by 3% in the last quarter, suggesting potential for cost reductions. Industry benchmark pricing indicates that our current rates are approximately 7% above market average, representing a clear opportunity for negotiation.`
-            },
-            {
-                title: 'Negotiation History',
-                content: `Previous negotiations with ${mockSupplier?.name || 'this supplier'} resulted in a 5% cost reduction in 2022. The supplier has historically been resistant to contract term changes but flexible on payment terms. Last negotiation cycle took approximately 4 weeks to complete.`
-            },
-            {
-                title: 'SWOT Analysis',
-                content: `
+    // Get supplier details from mockData.js
+    const getSupplierById = (id) => {
+        return mockSuppliers.find(s => s.id === parseInt(id)) || null;
+    };
+
+    // Generate dossier based on selected supplier
+    const generateMockDossier = (formData) => {
+        const supplierData = getSupplierById(formData.supplierId);
+
+        if (!supplierData) return null;
+
+        return {
+            supplierId: formData.supplierId,
+            supplierName: supplierData.name,
+            generatedDate: new Date().toISOString(),
+            sections: [
+                {
+                    title: 'Executive Summary',
+                    content: `This dossier provides a comprehensive analysis of ${supplierData.name} to support upcoming negotiations. The primary objectives are ${formData.objectives.slice(0, 3).join(', ') || 'cost reduction, lead time improvement, and enhanced quality standards'}. Based on market analysis, we recommend targeting a ${formData.targetSavings || '5-8%'} cost reduction while securing improved delivery terms.`
+                },
+                {
+                    title: 'Supplier Background',
+                    content: `${supplierData.name} is a ${supplierData.category} provider with a strong market presence. Founded in ${supplierData.foundedYear}, the company is based in ${supplierData.location} and has ${supplierData.employees} employees. ${supplierData.description}`
+                },
+                {
+                    title: 'Market Analysis',
+                    content: `Current market conditions for ${supplierData.category} show moderate competition with 4-5 major players. Raw material prices have decreased by 3% in the last quarter, suggesting potential for cost reductions. Industry benchmark pricing indicates that our current rates are approximately 7% above market average, representing a clear opportunity for negotiation.`
+                },
+                {
+                    title: 'Negotiation History',
+                    content: `Previous negotiations with ${supplierData.name} resulted in ${supplierData.negotiationHistory ? 'the following outcomes: ' + supplierData.negotiationHistory.map(h => `${h.date}: ${h.outcome} with ${h.savings}% savings`).join(', ') : 'limited success in past years'}. The supplier has historically been resistant to contract term changes but flexible on payment terms. Current payment terms are ${supplierData.paymentTerms}.`
+                },
+                {
+                    title: 'SWOT Analysis',
+                    content: `
 Strengths:
-- High quality products with low defect rates
-- Reliable delivery performance (98% on-time)
-- Technical expertise and support
+- ${supplierData.qualityScore > 90 ? 'High quality products with low defect rates' : 'Acceptable quality standards'}
+- ${supplierData.reliabilityScore > 85 ? 'Reliable delivery performance' : 'Moderate delivery reliability'} (${supplierData.reliabilityScore}%)
+- ${supplierData.communicationScore > 85 ? 'Excellent communication' : 'Adequate communication channels'}
 
 Weaknesses:
-- Higher pricing compared to market average
+- ${supplierData.category === 'Premium' ? 'Higher pricing compared to market average' : 'Standard market pricing'}
 - Limited production capacity during peak seasons
-- Inflexible on minimum order quantities
+- ${supplierData.riskFactors ? supplierData.riskFactors.find(r => r.level === 'medium')?.description || 'Some flexibility constraints' : 'Inflexible on minimum order quantities'}
 
 Opportunities:
 - Consolidation of orders to achieve volume discounts
@@ -113,15 +117,15 @@ Opportunities:
 Threats:
 - Alternative suppliers entering the market
 - Potential supply chain disruptions in Q4
-- Increasing raw material costs in certain categories
+- ${supplierData.riskFactors ? supplierData.riskFactors.find(r => r.level === 'high')?.description || 'Increasing raw material costs' : 'Increasing raw material costs in certain categories'}
         `
-            },
-            {
-                title: 'Negotiation Strategy',
-                content: `
+                },
+                {
+                    title: 'Negotiation Strategy',
+                    content: `
 Recommended approach:
 1. Open with a target of ${formData.targetSavings ? parseInt(formData.targetSavings) + 3 : '10'}% cost reduction based on market benchmarks
-2. Prioritize improved payment terms (Net 60 vs current Net 30)
+2. Prioritize improved payment terms (Net 60 vs current ${supplierData.paymentTerms || 'Net 30'})
 3. Request volume-based tiered pricing structure
 4. Be prepared to compromise on order scheduling flexibility
 
@@ -131,58 +135,50 @@ Key discussion points:
 - Potential for increased order volumes in the coming year
 - Streamlined ordering process reducing administrative costs
         `
-            },
-            {
-                title: 'Risk Assessment',
-                content: `
+                },
+                {
+                    title: 'Risk Assessment',
+                    content: `
 Low Risk Areas:
-- Quality standards are well-established and consistently met
-- Supplier financial stability is strong
+- ${supplierData.qualityScore > 85 ? 'Quality standards are well-established and consistently met' : 'Quality improvements have been noted recently'}
+- ${supplierData.riskFactors && supplierData.riskFactors.filter(r => r.level === 'low').length > 0 ? 'Low risk identified in: ' + supplierData.riskFactors.filter(r => r.level === 'low').map(r => r.category).join(', ') : 'Supplier financial stability is strong'}
 
 Medium Risk Areas:
-- Capacity constraints during peak seasons
+- ${supplierData.riskFactors && supplierData.riskFactors.filter(r => r.level === 'medium').length > 0 ? 'Medium risk identified in: ' + supplierData.riskFactors.filter(r => r.level === 'medium').map(r => r.category).join(', ') : 'Capacity constraints during peak seasons'}
 - Potential resistance to significant price reductions
 
 High Risk Areas:
-- Limited alternative suppliers for specialized components
+- ${supplierData.riskFactors && supplierData.riskFactors.filter(r => r.level === 'high').length > 0 ? 'High risk identified in: ' + supplierData.riskFactors.filter(r => r.level === 'high').map(r => r.category).join(', ') : 'Limited alternative suppliers for specialized components'}
 - Intellectual property protection in collaborative developments
         `
-            },
-            {
-                title: 'Recommended Targets',
-                content: `
+                },
+                {
+                    title: 'Recommended Targets',
+                    content: `
 Price: ${formData.targetSavings ? `${formData.targetSavings}% reduction` : '5-8% reduction'} from current levels
-Payment Terms: Net 60 (from current Net 30)
+Payment Terms: Net 60 (from current ${supplierData.paymentTerms || 'Net 30'})
 Lead Time: Reduction of 1 week from current standards
 Quality: Maintain current performance with enhanced reporting
 Contract Duration: 24 months with quarterly pricing reviews
         `
-            }
-        ]
+                }
+            ]
+        };
     };
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // In a real app, we would use the API client
-                // if (supplierId) {
-                //   const supplierResponse = await supplierApi.getById(supplierId);
-                //   setSupplier(supplierResponse.data);
-                // }
-                // const categoriesResponse = await negotiationApi.getCategories();
-                // setCategories(categoriesResponse.data);
-
-                // For the hackathon, use mock data
                 setTimeout(() => {
                     if (supplierId) {
-                        const supplier = mockSuppliers.find(s => s.id === parseInt(supplierId));
-                        setSupplier(supplier || null);
+                        const supplierData = getSupplierById(parseInt(supplierId));
+                        setSupplier(supplierData);
 
                         // Set products for this supplier
-                        if (supplier) {
+                        if (supplierData) {
                             setFormData(prev => ({
                                 ...prev,
-                                products: mockProductsBySupplier[supplier.id] || []
+                                products: getProductsBySupplier(supplierData.id) || []
                             }));
                         }
                     }
@@ -246,13 +242,10 @@ Contract Duration: 24 months with quarterly pricing reviews
         try {
             setGenerating(true);
 
-            // In a real app, we would call the API
-            // const response = await negotiationApi.generateDossier(formData);
-            // setDossier(response.data);
-
             // For the hackathon, use mock data
             setTimeout(() => {
-                setDossier(mockDossier);
+                const generatedDossier = generateMockDossier(formData);
+                setDossier(generatedDossier);
                 setGenerating(false);
             }, 1500);
         } catch (error) {
@@ -423,7 +416,7 @@ Contract Duration: 24 months with quarterly pricing reviews
                                         required
                                     >
                                         <option value="">-- Select a Supplier --</option>
-                                        {mockSuppliers.map(supplier => (
+                                        {getSimplifiedSuppliers().map(supplier => (
                                             <option key={supplier.id} value={supplier.id}>
                                                 {supplier.name} ({supplier.category})
                                             </option>
@@ -439,7 +432,7 @@ Contract Duration: 24 months with quarterly pricing reviews
                                         Products/Services
                                     </label>
                                     <div className="mt-2 space-y-2">
-                                        {mockProductsBySupplier[formData.supplierId]?.map((product, index) => (
+                                        {getProductsBySupplier(formData.supplierId).map((product, index) => (
                                             <div key={index} className="flex items-center">
                                                 <input
                                                     id={`product-${index}`}

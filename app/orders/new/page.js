@@ -16,7 +16,7 @@ import {
     FiClock,
     FiTruck
 } from 'react-icons/fi';
-import { orderApi, supplierApi } from '../../../lib/api';
+import { mockSuppliers } from '@/lib/mockData';
 
 export default function NewOrderPage() {
     const router = useRouter();
@@ -45,58 +45,48 @@ export default function NewOrderPage() {
         total: 0
     });
 
-    // Mock suppliers data
-    const mockSuppliers = [
-        { id: 1, name: 'ElectroTech Industries', category: 'Electronics' },
-        { id: 2, name: 'Global Packaging Solutions', category: 'Packaging' },
-        { id: 3, name: 'RawMat Suppliers Inc', category: 'Raw Materials' },
-        { id: 4, name: 'FastTrack Logistics', category: 'Logistics' },
-        { id: 5, name: 'Quality Service Providers', category: 'Services' },
-    ];
+    // Generate product mapping from mockSuppliers data
+    const getProductsBySupplier = () => {
+        const productMap = {};
 
-    // Mock products by supplier
-    const mockProductsBySupplier = {
-        1: [
-            { id: 101, name: 'Microcontrollers', description: 'ATmega328P microcontrollers', unitPrice: 15 },
-            { id: 102, name: 'Sensors', description: 'Temperature and humidity sensors', unitPrice: 12 },
-            { id: 103, name: 'PCB Assemblies', description: 'Custom PCB assemblies', unitPrice: 120 },
-        ],
-        2: [
-            { id: 201, name: 'Custom Boxes', description: 'Branded packaging boxes', unitPrice: 2 },
-            { id: 202, name: 'Protective Packaging', description: 'Bubble wrap and foam inserts', unitPrice: 5 },
-            { id: 203, name: 'Shipping Materials', description: 'Packaging tape and labels', unitPrice: 0.5 },
-        ],
-        3: [
-            { id: 301, name: 'Industrial Polymers', description: 'High-grade polymers for manufacturing', unitPrice: 40 },
-            { id: 302, name: 'Adhesives', description: 'Industrial strength adhesives', unitPrice: 30 },
-            { id: 303, name: 'Metals', description: 'Raw metal materials', unitPrice: 25 },
-        ],
-        4: [
-            { id: 401, name: 'Express Shipping', description: 'Priority 1-2 day shipping', unitPrice: 8000 },
-            { id: 402, name: 'Warehousing', description: 'Monthly storage services', unitPrice: 5000 },
-            { id: 403, name: 'Distribution', description: 'Product distribution services', unitPrice: 7500 },
-        ],
-        5: [
-            { id: 501, name: 'Consulting Services', description: 'Professional consulting', unitPrice: 15000 },
-            { id: 502, name: 'Quality Audits', description: 'Product quality assessment', unitPrice: 2000 },
-            { id: 503, name: 'Training', description: 'Staff training sessions', unitPrice: 5000 },
-        ],
+        mockSuppliers.forEach(supplier => {
+            if (supplier.products && supplier.products.length > 0) {
+                productMap[supplier.id] = supplier.products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    description: `${product.category} - Lead time: ${product.leadTime}`,
+                    unitPrice: product.unitPrice
+                }));
+            }
+        });
+
+        return productMap;
+    };
+
+    // Get simplified supplier list for dropdown
+    const getSimplifiedSuppliers = () => {
+        return mockSuppliers.map(supplier => ({
+            id: supplier.id,
+            name: supplier.name,
+            category: supplier.category
+        }));
     };
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // In a real app, we would use the API client
-                // const suppliersResponse = await supplierApi.getAll();
-                // setSuppliers(suppliersResponse.data);
-
                 // For the hackathon, use mock data
                 setTimeout(() => {
-                    setSuppliers(mockSuppliers);
+                    // Use simplified supplier list
+                    const simplifiedSuppliers = getSimplifiedSuppliers();
+                    setSuppliers(simplifiedSuppliers);
+
+                    // Generate products by supplier mapping
+                    const productsBySupplier = getProductsBySupplier();
 
                     // If a supplier is already selected, fetch their products
                     if (initialSupplierId) {
-                        const supplierProducts = mockProductsBySupplier[initialSupplierId] || [];
+                        const supplierProducts = productsBySupplier[initialSupplierId] || [];
                         setProducts(supplierProducts);
 
                         // If a product is specified, add it as the first item
@@ -144,12 +134,9 @@ export default function NewOrderPage() {
         }));
 
         if (supplierId) {
-            // In a real app, we would use the API client
-            // const productsResponse = await supplierApi.getProducts(supplierId);
-            // setProducts(productsResponse.data);
-
-            // For the hackathon, use mock data
-            setProducts(mockProductsBySupplier[supplierId] || []);
+            // Generate products by supplier mapping
+            const productsBySupplier = getProductsBySupplier();
+            setProducts(productsBySupplier[supplierId] || []);
         } else {
             setProducts([]);
         }
