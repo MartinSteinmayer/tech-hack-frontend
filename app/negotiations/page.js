@@ -92,13 +92,6 @@ export default function NegotiationsPage() {
                     <Link href="/suppliers" className="btn-secondary flex items-center">
                         {supplier ? 'Change Supplier' : 'Select Supplier'}
                     </Link>
-                    <Link
-                        href={supplierId ? `/negotiations/dossier?supplierId=${supplierId}` : '/negotiations/dossier'}
-                        className="btn-primary flex items-center"
-                    >
-                        <FiFileText className="mr-2" />
-                        Generate Dossier
-                    </Link>
                 </div>
             </div>
 
@@ -114,7 +107,7 @@ export default function NegotiationsPage() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Negotiation Dossier</h3>
-                                    <p className="text-sm text-gray-500">Create comprehensive supplier analysis</p>
+                                    <p className="text-sm text-gray-500">Create a comprehensive supplier analysis to prepare for a negotiation.</p>
                                 </div>
                             </div>
                         </Link>
@@ -126,7 +119,7 @@ export default function NegotiationsPage() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Pricing Strategies</h3>
-                                    <p className="text-sm text-gray-500">Get AI-powered pricing recommendations</p>
+                                    <p className="text-sm text-gray-500">Get AI-powered pricing recommendations.</p>
                                 </div>
                             </div>
                         </Link>
@@ -138,7 +131,7 @@ export default function NegotiationsPage() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Message Composer</h3>
-                                    <p className="text-sm text-gray-500">Draft effective supplier communications</p>
+                                    <p className="text-sm text-gray-500">Draft effective supplier communications with AI assistance.</p>
                                 </div>
                             </div>
                         </Link>
@@ -381,7 +374,7 @@ export default function NegotiationsPage() {
             {/* Quick Links */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Link
-                    href="/negotiations/dossier"
+                    href={supplierId ? `/negotiations/dossier?supplierId=${supplierId}` : "/negotiations/dossier"}
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -396,7 +389,7 @@ export default function NegotiationsPage() {
                 </Link>
 
                 <Link
-                    href="/negotiations/strategies"
+                    href={supplierId ? `/negotiations/strategies?supplierId=${supplierId}` : "/negotiations/strategies"}
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -411,7 +404,7 @@ export default function NegotiationsPage() {
                 </Link>
 
                 <Link
-                    href="/negotiations/messages"
+                    href={supplierId ? `/negotiations/messages?supplierId=${supplierId}` : "/negotiations/messages"}
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors"
                 >
                     <div className="flex items-center justify-between mb-4">

@@ -49,12 +49,17 @@ app/
   compliance/
     analyze/
       page.js
+    items/
+      [id]/
+        page.js
     page.js
   negotiations/
     dossier/
       page.js
     page.js
   orders/
+    [id]/
+      page.js
     new/
       page.js
     page.js
@@ -62,6 +67,8 @@ app/
     page.js
   suppliers/
     [id]/
+      page.js
+    new/
       page.js
     page.js
   globals.css
@@ -706,6 +713,638 @@ const FiChevronRight = ({ className }) => (
 );
 
 ================
+File: app/compliance/items/[id]/page.js
+================
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import {
+    FiArrowLeft,
+    FiFileText,
+    FiDownload,
+    FiEdit,
+    FiCheckCircle,
+    FiAlertCircle,
+    FiClock,
+    FiCalendar,
+    FiUser,
+    FiTag,
+    FiClipboard,
+    FiShield,
+    FiExternalLink,
+    FiUpload,
+    FiRefreshCw,
+    FiChevronRight
+} from 'react-icons/fi';
+import { complianceApi } from '@/lib/api';
+import { mockComplianceItems, getSupplierById } from '@/lib/mockData';
+
+export default function ComplianceItemDetailsPage() {
+    const params = useParams();
+    const itemId = parseInt(params.id);
+
+    const [complianceItem, setComplianceItem] = useState(null);
+    const [supplier, setSupplier] = useState(null);
+    const [relatedItems, setRelatedItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
+
+    useEffect(() => {
+        const fetchComplianceItem = async () => {
+            try {
+                // In a real app, we would use the API client
+                // const response = await complianceApi.getItemById(itemId);
+                // setComplianceItem(response.data);
+
+                // For the hackathon, use mock data
+                setTimeout(() => {
+                    const item = mockComplianceItems.find(item => item.id === itemId);
+                    setComplianceItem(item);
+
+                    if (item) {
+                        // Get supplier details
+                        const supplierData = getSupplierById(item.supplierId);
+                        setSupplier(supplierData);
+
+                        // Get related compliance items for the same supplier
+                        const related = mockComplianceItems.filter(
+                            relatedItem => relatedItem.supplierId === item.supplierId && relatedItem.id !== item.id
+                        );
+                        setRelatedItems(related);
+                    }
+
+                    setLoading(false);
+                }, 700);
+            } catch (error) {
+                console.error('Error fetching compliance item:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchComplianceItem();
+    }, [itemId]);
+
+    // Function to handle document download
+    const handleDownload = async () => {
+        if (!complianceItem) return;
+
+        try {
+            setDownloading(true);
+
+            // In a real app, we would fetch the document from an API
+            // const response = await complianceApi.downloadDocument(complianceItem.id);
+
+            // Using a mock file for the hackathon demo
+            const fileName = 'iso-9001-certificate.pdf';
+            const fileUrl = '/iso-9001-certificate-html.pdf';
+
+            // Fetch the file
+            const response = await fetch(fileUrl);
+
+            if (!response.ok) {
+                throw new Error('Failed to download file');
+            }
+
+            // Get the file as a blob
+            const blob = await response.blob();
+
+            // Create a URL for the blob
+            const downloadUrl = window.URL.createObjectURL(blob);
+
+            // Create a temporary link element to trigger the download
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            setDownloading(false);
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            setDownloading(false);
+            alert('Failed to download document. Please try again later.');
+        }
+    };
+
+    // Function to determine the status color
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'compliant':
+                return 'bg-green-100 text-green-800';
+            case 'review':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'non-compliant':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    // Function to determine the status icon
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'compliant':
+                return <FiCheckCircle className="h-5 w-5 text-green-500" />;
+            case 'review':
+                return <FiClock className="h-5 w-5 text-yellow-500" />;
+            case 'non-compliant':
+                return <FiAlertCircle className="h-5 w-5 text-red-500" />;
+            default:
+                return <FiFileText className="h-5 w-5 text-gray-500" />;
+        }
+    };
+
+    // Function to format the date display
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    };
+
+    // Function to calculate days until expiry
+    const getDaysUntilExpiry = (dateString) => {
+        if (!dateString) return null;
+
+        const expiryDate = new Date(dateString);
+        const today = new Date();
+        const days = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+
+        return days;
+    };
+
+    // Get expiry status message and color
+    const getExpiryStatus = (dateString) => {
+        if (!dateString) return { message: 'No expiration date', color: 'text-gray-500' };
+
+        const days = getDaysUntilExpiry(dateString);
+
+        if (days < 0) {
+            return { message: 'Expired', color: 'text-red-600' };
+        } else if (days <= 30) {
+            return { message: `Expires in ${days} days`, color: 'text-red-600' };
+        } else if (days <= 60) {
+            return { message: `Expires in ${days} days`, color: 'text-yellow-600' };
+        } else {
+            return { message: `Expires in ${days} days`, color: 'text-green-600' };
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading compliance details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!complianceItem) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                    <FiAlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+                    <h2 className="mt-2 text-xl font-semibold text-gray-800">Compliance Item Not Found</h2>
+                    <p className="mt-1 text-gray-600">The compliance item you're looking for does not exist or has been removed.</p>
+                    <Link href="/compliance" className="mt-4 inline-block btn-primary">
+                        Return to Compliance
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // Get expiry status
+    const expiryStatus = getExpiryStatus(complianceItem.expiryDate);
+
+    return (
+        <div className="space-y-6">
+            {/* Header with back button and actions */}
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <Link href="/compliance" className="p-2 rounded-full hover:bg-gray-100 mr-2">
+                        <FiArrowLeft className="h-5 w-5 text-gray-600" />
+                    </Link>
+                    <h1 className="text-2xl font-bold text-gray-800">Compliance Document Details</h1>
+                </div>
+                <div className="flex space-x-3">
+                    <button
+                        className="btn-secondary flex items-center"
+                        onClick={handleDownload}
+                        disabled={downloading}
+                    >
+                        {downloading ? (
+                            <>
+                                <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full mr-2"></div>
+                                Downloading...
+                            </>
+                        ) : (
+                            <>
+                                <FiDownload className="mr-2" />
+                                Download
+                            </>
+                        )}
+                    </button>
+                    <button className="btn-primary flex items-center">
+                        <FiEdit className="mr-2" />
+                        Update Status
+                    </button>
+                </div>
+            </div>
+
+            {/* Compliance Item Details Card */}
+            <div className="bg-white rounded-lg shadow-md">
+                <div className="p-6 border-b border-gray-200">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                        <div>
+                            <div className="flex items-center mb-2">
+                                <h2 className="text-lg font-medium text-gray-800 mr-3">{complianceItem.documentType}</h2>
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(complianceItem.status)}`}>
+                                    {getStatusIcon(complianceItem.status)}
+                                    <span className="ml-1">
+                                        {complianceItem.status === 'compliant' ? 'Compliant' :
+                                            complianceItem.status === 'review' ? 'Under Review' :
+                                                'Non-Compliant'}
+                                    </span>
+                                </span>
+                            </div>
+                            <div className="flex items-center text-sm text-gray-600">
+                                <FiUser className="mr-2 h-4 w-4" />
+                                <span className="mr-1">Supplier:</span>
+                                <Link href={`/suppliers/${complianceItem.supplierId}`} className="text-blue-600 hover:underline">
+                                    {complianceItem.supplierName}
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex items-center">
+                                <FiCalendar className="mr-2 h-4 w-4 text-gray-500" />
+                                <div>
+                                    <span className="text-xs text-gray-500">Last Checked</span>
+                                    <p className="text-sm font-medium">{formatDate(complianceItem.lastChecked)}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center">
+                                <FiCalendar className="mr-2 h-4 w-4 text-gray-500" />
+                                <div>
+                                    <span className="text-xs text-gray-500">Expiry Date</span>
+                                    <p className={`text-sm font-medium ${expiryStatus.color}`}>
+                                        {formatDate(complianceItem.expiryDate)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rest of the component remains unchanged */}
+                <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Left column - key details */}
+                        <div className="md:col-span-2 space-y-6">
+                            {/* Status information */}
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <div className="flex items-start">
+                                    {getStatusIcon(complianceItem.status)}
+                                    <div className="ml-3">
+                                        <h3 className="text-md font-medium text-gray-800">
+                                            {complianceItem.status === 'compliant' ? 'Document is Compliant' :
+                                                complianceItem.status === 'review' ? 'Document Needs Review' :
+                                                    'Document Not Compliant'}
+                                        </h3>
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            {complianceItem.status === 'compliant'
+                                                ? 'This document meets all requirements and standards.'
+                                                : complianceItem.status === 'review'
+                                                    ? 'This document requires review to ensure compliance with standards.'
+                                                    : 'This document does not meet compliance requirements and needs immediate attention.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {complianceItem.expiryDate && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <div className="flex items-center">
+                                            <FiCalendar className="h-5 w-5 text-gray-500 mr-3" />
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-800">Expiration Status</h4>
+                                                <p className={`text-sm ${expiryStatus.color}`}>
+                                                    {expiryStatus.message}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <div className="flex items-center">
+                                        <FiTag className="h-5 w-5 text-gray-500 mr-3" />
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-800">Category</h4>
+                                            <p className="text-sm text-gray-600">{complianceItem.category}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Document Details */}
+                            <div className="bg-white border rounded-lg p-5">
+                                <h3 className="text-md font-medium text-gray-800 mb-3">Document Details</h3>
+
+                                {complianceItem.notes && (
+                                    <div className="mb-4">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-1">Notes</h4>
+                                        <p className="text-sm text-gray-600">{complianceItem.notes}</p>
+                                    </div>
+                                )}
+
+                                <div className="border-t border-gray-200 pt-4 mt-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-700 mb-1">Document Type</h4>
+                                            <p className="text-sm text-gray-600">{complianceItem.documentType}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-700 mb-1">Last Updated</h4>
+                                            <p className="text-sm text-gray-600">{formatDate(complianceItem.lastChecked)}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-700 mb-1">Verification Method</h4>
+                                            <p className="text-sm text-gray-600">Document Analysis</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-700 mb-1">Document ID</h4>
+                                            <p className="text-sm text-gray-600">DOC-{complianceItem.id.toString().padStart(4, '0')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Recommended Actions */}
+                            {complianceItem.status !== 'compliant' && (
+                                <div className="bg-white border rounded-lg p-5">
+                                    <h3 className="text-md font-medium text-gray-800 mb-3">Recommended Actions</h3>
+
+                                    <div className="space-y-4">
+                                        {complianceItem.status === 'review' ? (
+                                            <>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 mt-1">
+                                                        <div className="h-5 w-5 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600">
+                                                            <span className="text-xs">1</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-gray-700">
+                                                            Review the document for compliance with latest standards
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 mt-1">
+                                                        <div className="h-5 w-5 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600">
+                                                            <span className="text-xs">2</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-gray-700">
+                                                            Contact supplier for any clarifications or missing information
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 mt-1">
+                                                        <div className="h-5 w-5 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600">
+                                                            <span className="text-xs">3</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-gray-700">
+                                                            Update compliance status after review
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 mt-1">
+                                                        <div className="h-5 w-5 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                                                            <span className="text-xs">1</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-gray-700">
+                                                            Notify supplier immediately about non-compliance
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 mt-1">
+                                                        <div className="h-5 w-5 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                                                            <span className="text-xs">2</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-gray-700">
+                                                            Request corrected documentation within 15 days
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 mt-1">
+                                                        <div className="h-5 w-5 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                                                            <span className="text-xs">3</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-gray-700">
+                                                            Escalate to compliance team if no response within 7 days
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right column - supplier info & actions */}
+                        <div className="space-y-6">
+                            {/* Supplier Information */}
+                            {supplier && (
+                                <div className="bg-white border rounded-lg p-5">
+                                    <h3 className="text-md font-medium text-gray-800 mb-3">Supplier Information</h3>
+
+                                    <div className="flex items-center mb-4">
+                                        <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-lg font-bold mr-3">
+                                            {supplier.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <Link href={`/suppliers/${supplier.id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                                                {supplier.name}
+                                            </Link>
+                                            <p className="text-xs text-gray-500">{supplier.category}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 space-y-2">
+                                        <div className="flex items-center text-sm">
+                                            <span className="text-gray-500 w-32">Status:</span>
+                                            <span className={`font-medium ${supplier.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                                                {supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center text-sm">
+                                            <span className="text-gray-500 w-32">Compliance Status:</span>
+                                            <span className={`font-medium ${supplier.complianceStatus === 'compliant' ? 'text-green-600' :
+                                                supplier.complianceStatus === 'review' ? 'text-yellow-600' :
+                                                    'text-red-600'
+                                                }`}>
+                                                {supplier.complianceStatus.charAt(0).toUpperCase() + supplier.complianceStatus.slice(1)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center text-sm">
+                                            <span className="text-gray-500 w-32">Location:</span>
+                                            <span className="font-medium">{supplier.location}</span>
+                                        </div>
+                                        <div className="flex items-center text-sm">
+                                            <span className="text-gray-500 w-32">Contract Expires:</span>
+                                            <span className="font-medium">{formatDate(supplier.contractExpiry)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-3 border-t border-gray-200">
+                                        <Link
+                                            href={`/suppliers/${supplier.id}`}
+                                            className="text-sm text-blue-600 font-medium flex items-center"
+                                        >
+                                            View Supplier Profile
+                                            <FiChevronRight className="ml-1 h-4 w-4" />
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Quick Actions */}
+                            <div className="bg-white border rounded-lg p-5">
+                                <h3 className="text-md font-medium text-gray-800 mb-3">Quick Actions</h3>
+
+                                <div className="space-y-3">
+                                    <Link
+                                        href={`/compliance/verify?documentId=${complianceItem.id}`}
+                                        className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
+                                    >
+                                        <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 mr-3">
+                                            <FiCheckCircle className="h-4 w-4" />
+                                        </div>
+                                        <span className="text-sm font-medium">Verify Compliance</span>
+                                    </Link>
+
+                                    <Link
+                                        href={`/compliance/analyze`}
+                                        className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
+                                    >
+                                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-3">
+                                            <FiUpload className="h-4 w-4" />
+                                        </div>
+                                        <span className="text-sm font-medium">Upload New Version</span>
+                                    </Link>
+
+                                    <button
+                                        className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors w-full cursor-pointer"
+                                    >
+                                        <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 mr-3">
+                                            <FiRefreshCw className="h-4 w-4" />
+                                        </div>
+                                        <span className="text-sm font-medium cursor-pointer">Schedule Review</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Related Compliance Items */}
+            {relatedItems.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-lg font-medium text-gray-800">Related Compliance Items</h2>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Document Type
+                                    </th>
+                                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Category
+                                    </th>
+                                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Expiry Date
+                                    </th>
+                                    <th className="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {relatedItems.map((item) => (
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            {item.documentType}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {item.category}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                {getStatusIcon(item.status)}
+                                                <span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                                                    {item.status === 'compliant' ? 'Compliant' :
+                                                        item.status === 'review' ? 'Under Review' :
+                                                            'Non-Compliant'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {formatDate(item.expiryDate)}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <Link
+                                                href={`/compliance/items/${item.id}`}
+                                                className="text-blue-600 hover:text-blue-900"
+                                            >
+                                                View
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+================
 File: app/compliance/page.js
 ================
 'use client';
@@ -924,7 +1563,7 @@ export default function CompliancePage() {
 
                     <div className="flex items-center space-x-4">
                         <div className="relative">
-                            <select className="form-select">
+                            <select className="form-select cursor-pointer">
                                 <option value="">All Suppliers</option>
                                 <option value="1">ElectroTech Industries</option>
                                 <option value="2">Global Packaging Solutions</option>
@@ -935,7 +1574,7 @@ export default function CompliancePage() {
                         </div>
 
                         <div className="relative">
-                            <select className="form-select">
+                            <select className="form-select cursor-pointer">
                                 <option value="">All Categories</option>
                                 <option value="Quality Management">Quality Management</option>
                                 <option value="Environmental">Environmental</option>
@@ -948,7 +1587,7 @@ export default function CompliancePage() {
                         </div>
 
                         <div className="relative">
-                            <select className="form-select">
+                            <select className="form-select cursor-pointer">
                                 <option value="">All Statuses</option>
                                 <option value="compliant">Compliant</option>
                                 <option value="review">Under Review</option>
@@ -1216,6 +1855,8 @@ import {
     FiInfo
 } from 'react-icons/fi';
 import { mockSuppliers } from '@/lib/mockData';
+import { jsPDF } from 'jspdf';
+import "jspdf-autotable";
 
 export default function DossierGeneratorPage() {
     const searchParams = useSearchParams();
@@ -1456,8 +2097,189 @@ Contract Duration: 24 months with quarterly pricing reviews
     };
 
     const downloadDossier = () => {
-        // In a real app, this would download a PDF
-        alert('Download functionality would be implemented in the final application');
+        // Create a new PDF document
+        const doc = new jsPDF();
+
+        // Set initial position
+        let yPos = 20;
+        const leftMargin = 20;
+        const pageWidth = doc.internal.pageSize.width;
+
+        // Add company logo placeholder (optional)
+        // doc.addImage(logoDataUrl, 'PNG', leftMargin, yPos, 40, 15);
+
+        // Add title
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 51, 102); // Dark blue
+        doc.text(`Negotiation Dossier`, leftMargin, yPos);
+        yPos += 10;
+
+        // Add supplier name
+        doc.setFontSize(18);
+        doc.setTextColor(0, 0, 0);
+        doc.text(dossier.supplierName, leftMargin, yPos);
+        yPos += 10;
+
+        // Add generated date and disclaimer
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100); // Gray
+        doc.text(`Generated on ${new Date(dossier.generatedDate).toLocaleDateString()}`, leftMargin, yPos);
+        doc.text('AI-generated content. Review for accuracy.', pageWidth - 90, yPos);
+        yPos += 15;
+
+        // Add horizontal line
+        doc.setDrawColor(200, 200, 200); // Light gray
+        doc.setLineWidth(0.5);
+        doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
+        yPos += 10;
+
+        // Process each section
+        for (const section of dossier.sections) {
+            // Check if we need a new page
+            if (yPos > 260) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            // Add section title
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 102, 204); // Blue
+            doc.text(section.title, leftMargin, yPos);
+            yPos += 8;
+
+            // Add section content
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0); // Black
+
+            // Special formatting for SWOT Analysis
+            if (section.title === 'SWOT Analysis') {
+                // Parse the SWOT content - assuming the format is consistent
+                const swotContent = section.content.trim();
+                const swotSections = swotContent.split(/\n(?=Strengths:|Weaknesses:|Opportunities:|Threats:)/g);
+
+                for (const swotSection of swotSections) {
+                    if (swotSection.trim() === '') continue;
+
+                    // Check if we need a new page
+                    if (yPos > 240) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    const lines = swotSection.split('\n');
+                    const title = lines[0];
+
+                    // Add SWOT category title
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(title, leftMargin, yPos);
+                    yPos += 6;
+
+                    // Add bullet points
+                    doc.setFont('helvetica', 'normal');
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line === '' || !line.startsWith('-')) continue;
+
+                        // Format bullet point
+                        const bulletText = line.substring(1).trim();
+                        const formattedText = doc.splitTextToSize(bulletText, pageWidth - 50);
+
+                        // Check if we need a new page
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        // Add bullet and text
+                        doc.text('•', leftMargin, yPos);
+                        doc.text(formattedText, leftMargin + 5, yPos);
+                        yPos += 6 * formattedText.length;
+                    }
+
+                    yPos += 5; // Extra space between SWOT categories
+                }
+            }
+            // Special formatting for Negotiation Strategy
+            else if (section.title === 'Negotiation Strategy' ||
+                section.title === 'Risk Assessment' ||
+                section.title === 'Recommended Targets') {
+                const lines = section.content.split('\n');
+                let isInList = false;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line === '') continue;
+
+                    // Check if we need a new page
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    // Handle bullet points or numbered lists
+                    if (line.match(/^\d+\.\s/) || line.startsWith('-')) {
+                        isInList = true;
+                        const textIndent = line.match(/^\d+\.\s/) ? 8 : 5;
+                        const bulletText = line.match(/^\d+\.\s/) ?
+                            line : line.substring(1).trim();
+
+                        const formattedText = doc.splitTextToSize(bulletText, pageWidth - 50);
+                        doc.text(formattedText, leftMargin + textIndent, yPos);
+                        yPos += 6 * formattedText.length;
+                    }
+                    // Handle category/subheadings
+                    else if (line.endsWith(':')) {
+                        isInList = false;
+                        yPos += 3; // Add extra space before subheading
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(line, leftMargin, yPos);
+                        doc.setFont('helvetica', 'normal');
+                        yPos += 6;
+                    }
+                    // Regular paragraph text
+                    else {
+                        isInList = false;
+                        const formattedText = doc.splitTextToSize(line, pageWidth - 40);
+                        doc.text(formattedText, leftMargin, yPos);
+                        yPos += 6 * formattedText.length;
+                    }
+                }
+            }
+            // Regular text section
+            else {
+                const textLines = doc.splitTextToSize(section.content, pageWidth - 40);
+                doc.text(textLines, leftMargin, yPos);
+                yPos += 6 * textLines.length;
+            }
+
+            // Add spacing between sections
+            yPos += 10;
+
+            // Add section divider
+            if (section !== dossier.sections[dossier.sections.length - 1]) {
+                doc.setDrawColor(230, 230, 230);
+                doc.setLineWidth(0.3);
+                doc.line(leftMargin, yPos - 5, pageWidth - leftMargin, yPos - 5);
+            }
+        }
+
+        // Add footer with page numbers
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Page ${i} of ${pageCount} | ${dossier.supplierName} Negotiation Dossier`,
+                pageWidth / 2, 290, { align: 'center' });
+        }
+
+        // Save the PDF
+        const filename = `${dossier.supplierName.replace(/\s+/g, '_')}_Negotiation_Dossier.pdf`;
+        doc.save(filename);
     };
 
     // If we've generated a dossier, show it
@@ -1613,7 +2435,7 @@ Contract Duration: 24 months with quarterly pricing reviews
                                         name="supplierId"
                                         value={formData.supplierId}
                                         onChange={handleSupplierChange}
-                                        className="form-select"
+                                        className="form-select cursor-pointer"
                                         required
                                     >
                                         <option value="">-- Select a Supplier --</option>
@@ -1700,7 +2522,7 @@ Contract Duration: 24 months with quarterly pricing reviews
                                     name="negotiationContext"
                                     value={formData.negotiationContext}
                                     onChange={handleChange}
-                                    className="form-select"
+                                    className="form-select cursor-pointer"
                                 >
                                     <option value="">-- Select Context --</option>
                                     <option value="new">New Relationship</option>
@@ -1880,13 +2702,6 @@ export default function NegotiationsPage() {
                     <Link href="/suppliers" className="btn-secondary flex items-center">
                         {supplier ? 'Change Supplier' : 'Select Supplier'}
                     </Link>
-                    <Link
-                        href={supplierId ? `/negotiations/dossier?supplierId=${supplierId}` : '/negotiations/dossier'}
-                        className="btn-primary flex items-center"
-                    >
-                        <FiFileText className="mr-2" />
-                        Generate Dossier
-                    </Link>
                 </div>
             </div>
 
@@ -1902,7 +2717,7 @@ export default function NegotiationsPage() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Negotiation Dossier</h3>
-                                    <p className="text-sm text-gray-500">Create comprehensive supplier analysis</p>
+                                    <p className="text-sm text-gray-500">Create a comprehensive supplier analysis to prepare for a negotiation.</p>
                                 </div>
                             </div>
                         </Link>
@@ -1914,7 +2729,7 @@ export default function NegotiationsPage() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Pricing Strategies</h3>
-                                    <p className="text-sm text-gray-500">Get AI-powered pricing recommendations</p>
+                                    <p className="text-sm text-gray-500">Get AI-powered pricing recommendations.</p>
                                 </div>
                             </div>
                         </Link>
@@ -1926,7 +2741,7 @@ export default function NegotiationsPage() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Message Composer</h3>
-                                    <p className="text-sm text-gray-500">Draft effective supplier communications</p>
+                                    <p className="text-sm text-gray-500">Draft effective supplier communications with AI assistance.</p>
                                 </div>
                             </div>
                         </Link>
@@ -2169,7 +2984,7 @@ export default function NegotiationsPage() {
             {/* Quick Links */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Link
-                    href="/negotiations/dossier"
+                    href={supplierId ? `/negotiations/dossier?supplierId=${supplierId}` : "/negotiations/dossier"}
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -2184,7 +2999,7 @@ export default function NegotiationsPage() {
                 </Link>
 
                 <Link
-                    href="/negotiations/strategies"
+                    href={supplierId ? `/negotiations/strategies?supplierId=${supplierId}` : "/negotiations/strategies"}
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -2199,7 +3014,7 @@ export default function NegotiationsPage() {
                 </Link>
 
                 <Link
-                    href="/negotiations/messages"
+                    href={supplierId ? `/negotiations/messages?supplierId=${supplierId}` : "/negotiations/messages"}
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -2212,6 +3027,521 @@ export default function NegotiationsPage() {
                         Draft effective supplier communications with AI assistance.
                     </p>
                 </Link>
+            </div>
+        </div>
+    );
+}
+
+================
+File: app/orders/[id]/page.js
+================
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import {
+    FiArrowLeft,
+    FiFileText,
+    FiEdit,
+    FiPrinter,
+    FiDownload,
+    FiTruck,
+    FiClock,
+    FiCheck,
+    FiAlertCircle,
+    FiMapPin,
+    FiCalendar,
+    FiDollarSign,
+    FiPackage,
+    FiShoppingCart,
+    FiClipboard,
+    FiMessageSquare,
+    FiX
+} from 'react-icons/fi';
+import { orderApi } from '@/lib/api';
+import { mockOrders, getSupplierById } from '@/lib/mockData';
+
+export default function OrderDetailsPage() {
+    const params = useParams();
+    const router = useRouter();
+    const orderId = params.id;
+
+    const [order, setOrder] = useState(null);
+    const [supplier, setSupplier] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [confirmCancel, setConfirmCancel] = useState(false);
+
+    useEffect(() => {
+        const fetchOrderDetails = async () => {
+            try {
+                // In a real app, we would use the API client
+                // const response = await orderApi.getOrderById(orderId);
+                // setOrder(response.data);
+
+                // For the hackathon, use mock data
+                setTimeout(() => {
+                    const orderData = mockOrders.find(order => order.id === orderId);
+
+                    if (orderData) {
+                        setOrder(orderData);
+
+                        // Get supplier details
+                        const supplierData = getSupplierById(orderData.supplierId);
+                        setSupplier(supplierData);
+                    }
+
+                    setLoading(false);
+                }, 700);
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                setLoading(false);
+            }
+        };
+
+        if (orderId) {
+            fetchOrderDetails();
+        }
+    }, [orderId]);
+
+    // Function to get status badge styling
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'draft':
+                return 'bg-gray-100 text-gray-800';
+            case 'processing':
+                return 'bg-blue-100 text-blue-800';
+            case 'shipped':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'delivered':
+                return 'bg-green-100 text-green-800';
+            case 'cancelled':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    // Function to get status icon
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'draft':
+                return <FiFileText className="h-5 w-5 text-gray-500" />;
+            case 'processing':
+                return <FiClock className="h-5 w-5 text-blue-500" />;
+            case 'shipped':
+                return <FiTruck className="h-5 w-5 text-yellow-500" />;
+            case 'delivered':
+                return <FiCheck className="h-5 w-5 text-green-500" />;
+            case 'cancelled':
+                return <FiX className="h-5 w-5 text-red-500" />;
+            default:
+                return <FiFileText className="h-5 w-5 text-gray-500" />;
+        }
+    };
+
+    // Function to format date
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString();
+    };
+
+    // Function to handle order cancellation
+    const handleCancelOrder = () => {
+        if (confirmCancel) {
+            // In a real app, we would call the API
+            // await orderApi.updateOrderStatus(orderId, 'cancelled');
+
+            // Update local state
+            setOrder(prev => ({
+                ...prev,
+                status: 'cancelled'
+            }));
+
+            setConfirmCancel(false);
+        } else {
+            setConfirmCancel(true);
+        }
+    };
+
+    // Function to handle order status update
+    const handleUpdateStatus = (newStatus) => {
+        // In a real app, we would call the API
+        // await orderApi.updateOrderStatus(orderId, newStatus);
+
+        // Update local state
+        setOrder(prev => ({
+            ...prev,
+            status: newStatus,
+            lastUpdated: new Date().toISOString()
+        }));
+    };
+
+    if (loading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading order details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!order) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                    <FiAlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+                    <h2 className="mt-2 text-xl font-semibold text-gray-800">Order Not Found</h2>
+                    <p className="mt-1 text-gray-600">The order you're looking for does not exist or has been removed.</p>
+                    <Link href="/orders" className="mt-4 inline-block btn-primary">
+                        Return to Orders
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header with back button and actions */}
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <Link href="/orders" className="p-2 rounded-full hover:bg-gray-100 mr-2">
+                        <FiArrowLeft className="h-5 w-5 text-gray-600" />
+                    </Link>
+                    <h1 className="text-2xl font-bold text-gray-800">Order {order.id}</h1>
+                </div>
+                <div className="flex space-x-3">
+                    <button className="btn-secondary flex items-center">
+                        <FiPrinter className="mr-2" />
+                        Print
+                    </button>
+                    <button className="btn-secondary flex items-center">
+                        <FiDownload className="mr-2" />
+                        Export
+                    </button>
+                    {order.status === 'draft' && (
+                        <Link href={`/orders/${order.id}/edit`} className="btn-primary flex items-center">
+                            <FiEdit className="mr-2" />
+                            Edit Order
+                        </Link>
+                    )}
+                </div>
+            </div>
+
+            {/* Order summary card */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+                    {/* Order ID and supplier */}
+                    <div>
+                        <div className="flex items-center mb-2">
+                            <h2 className="text-lg font-semibold text-gray-800 mr-3">Order Details</h2>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(order.status)}`}>
+                                <span className="mr-1">{getStatusIcon(order.status)}</span>
+                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </span>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Supplier: </span>
+                            {supplier ? (
+                                <Link href={`/suppliers/${supplier.id}`} className="text-blue-600 hover:underline">
+                                    {supplier.name}
+                                </Link>
+                            ) : (
+                                order.supplierName
+                            )}
+                        </div>
+                        <div className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Created on: </span>
+                            {formatDate(order.date)}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <span className="font-medium">Last updated: </span>
+                            {formatDate(order.lastUpdated)}
+                        </div>
+                    </div>
+
+                    {/* Order key metrics */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center text-sm text-gray-500 mb-1">
+                                <FiCalendar className="mr-2 h-4 w-4" />
+                                Delivery Date
+                            </div>
+                            <p className="font-medium">
+                                {formatDate(order.deliveryDate)}
+                                {order.status === 'processing' && new Date(order.deliveryDate) < new Date() && (
+                                    <span className="ml-2 text-yellow-600 text-xs font-medium">
+                                        Delayed
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center text-sm text-gray-500 mb-1">
+                                <FiDollarSign className="mr-2 h-4 w-4" />
+                                Payment Terms
+                            </div>
+                            <p className="font-medium">{order.paymentTerms}</p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center text-sm text-gray-500 mb-1">
+                                <FiPackage className="mr-2 h-4 w-4" />
+                                Items
+                            </div>
+                            <p className="font-medium">{order.items.length}</p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center text-sm text-gray-500 mb-1">
+                                <FiDollarSign className="mr-2 h-4 w-4" />
+                                Total Value
+                            </div>
+                            <p className="font-medium">${order.total.toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Order notes */}
+                {order.notes && (
+                    <div className="mt-6 bg-blue-50 p-4 rounded-lg">
+                        <div className="flex items-start">
+                            <FiClipboard className="h-5 w-5 text-blue-500 mt-0.5 mr-3" />
+                            <div>
+                                <h4 className="font-medium text-blue-800 mb-1">Order Notes</h4>
+                                <p className="text-sm text-blue-700">{order.notes}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Order status timeline */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">Order Timeline</h2>
+
+                <div className="relative">
+                    {/* Timeline line */}
+                    <div className="absolute h-full w-0.5 bg-gray-200 left-5 top-0"></div>
+
+                    {/* Timeline events */}
+                    <div className="ml-12 space-y-8">
+                        {/* Created */}
+                        <div className="relative">
+                            <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                            <div>
+                                <h3 className="text-md font-medium text-gray-800">Order Created</h3>
+                                <p className="mt-1 text-sm text-gray-500">{formatDate(order.date)}</p>
+                            </div>
+                        </div>
+
+                        {/* Processing */}
+                        {(order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') && (
+                            <div className="relative">
+                                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border-2 border-blue-500 bg-white"></div>
+                                <div>
+                                    <h3 className="text-md font-medium text-gray-800">Processing Started</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        {formatDate(order.lastUpdated)}
+                                    </p>
+                                    <p className="mt-1 text-sm text-gray-600">
+                                        Order is being processed by the supplier
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Shipped */}
+                        {(order.status === 'shipped' || order.status === 'delivered') && (
+                            <div className="relative">
+                                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border-2 border-yellow-500 bg-white"></div>
+                                <div>
+                                    <h3 className="text-md font-medium text-gray-800">Order Shipped</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        {formatDate(order.lastUpdated)}
+                                    </p>
+                                    {order.trackingNumber && (
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            Tracking Number: <span className="font-medium">{order.trackingNumber}</span>
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Delivered */}
+                        {order.status === 'delivered' && (
+                            <div className="relative">
+                                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border-2 border-green-500 bg-white"></div>
+                                <div>
+                                    <h3 className="text-md font-medium text-gray-800">Order Delivered</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        {formatDate(order.deliveredDate || order.lastUpdated)}
+                                    </p>
+                                    <p className="mt-1 text-sm text-green-600">
+                                        Order completed successfully
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Cancelled */}
+                        {order.status === 'cancelled' && (
+                            <div className="relative">
+                                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border-2 border-red-500 bg-white"></div>
+                                <div>
+                                    <h3 className="text-md font-medium text-gray-800">Order Cancelled</h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        {formatDate(order.lastUpdated)}
+                                    </p>
+                                    <p className="mt-1 text-sm text-red-600">
+                                        This order has been cancelled
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Expected delivery (for pending orders) */}
+                        {(order.status === 'processing' || order.status === 'shipped') && (
+                            <div className="relative">
+                                <div className="absolute -left-12 mt-1.5 h-4 w-4 rounded-full border-2 border-gray-300 bg-white"></div>
+                                <div>
+                                    <h3 className="text-md font-medium text-gray-400">Expected Delivery</h3>
+                                    <p className="mt-1 text-sm text-gray-400">
+                                        {formatDate(order.deliveryDate)}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Order items table */}
+            <div className="bg-white rounded-lg shadow-md">
+                <div className="p-6 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-gray-800">Order Items</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Product
+                                </th>
+                                <th className="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Quantity
+                                </th>
+                                <th className="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Unit Price
+                                </th>
+                                <th className="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Total
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {order.items.map((item, index) => (
+                                <tr key={index}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {item.name}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                        {item.quantity.toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                        ${item.unitPrice.toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                        ${item.total.toLocaleString()}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50">
+                            <tr>
+                                <td colSpan="3" className="px-6 py-4 text-sm font-medium text-gray-900 text-right">
+                                    Subtotal
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                    ${order.total.toLocaleString()}
+                                </td>
+                            </tr>
+                            {/* For simplicity, we're not showing shipping and tax here,
+                                but you could add those lines if those fields exist in your data */}
+                            <tr>
+                                <td colSpan="3" className="px-6 py-4 text-base font-bold text-gray-900 text-right">
+                                    Total
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900 text-right">
+                                    ${order.total.toLocaleString()}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            {/* Action buttons based on status */}
+            <div className="flex justify-between">
+                <div>
+                    {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                        <button
+                            onClick={handleCancelOrder}
+                            className="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50"
+                        >
+                            {confirmCancel ? 'Confirm Cancellation' : 'Cancel Order'}
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex space-x-3">
+                    {order.status === 'draft' && (
+                        <button
+                            onClick={() => handleUpdateStatus('processing')}
+                            className="btn-primary flex items-center"
+                        >
+                            <FiCheck className="mr-2" />
+                            Submit Order
+                        </button>
+                    )}
+
+                    {order.status === 'processing' && (
+                        <button
+                            onClick={() => handleUpdateStatus('shipped')}
+                            className="btn-primary flex items-center"
+                        >
+                            <FiTruck className="mr-2" />
+                            Mark as Shipped
+                        </button>
+                    )}
+
+                    {order.status === 'shipped' && (
+                        <button
+                            onClick={() => handleUpdateStatus('delivered')}
+                            className="btn-primary flex items-center"
+                        >
+                            <FiCheck className="mr-2" />
+                            Mark as Delivered
+                        </button>
+                    )}
+
+                    {supplier && (
+                        <Link
+                            href={`/negotiations?supplierId=${supplier.id}`}
+                            className="btn-secondary flex items-center"
+                        >
+                            <FiMessageSquare className="mr-2" />
+                            Contact Supplier
+                        </Link>
+                    )}
+
+                    <Link href={`/orders/new?supplierId=${order.supplierId}`} className="btn-secondary flex items-center">
+                        <FiShoppingCart className="mr-2" />
+                        New Order
+                    </Link>
+                </div>
             </div>
         </div>
     );
@@ -2620,7 +3950,7 @@ export default function NewOrderPage() {
                                     name="supplierId"
                                     value={formData.supplierId}
                                     onChange={handleSupplierChange}
-                                    className={`form-select ${validationErrors.supplierId ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                    className={`form-select cursor-pointer ${validationErrors.supplierId ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                                 >
                                     <option value="">-- Select Supplier --</option>
                                     {suppliers.map(supplier => (
@@ -2687,7 +4017,7 @@ export default function NewOrderPage() {
                                     name="paymentTerms"
                                     value={formData.paymentTerms}
                                     onChange={handleChange}
-                                    className="form-select"
+                                    className="form-select cursor-pointer"
                                 >
                                     <option value="Net 15">Net 15</option>
                                     <option value="Net 30">Net 30</option>
@@ -2776,7 +4106,7 @@ export default function NewOrderPage() {
                                                 <select
                                                     value={item.productId}
                                                     onChange={(e) => handleProductChange(index, e)}
-                                                    className={`form-select ${validationErrors[`item_${index}_productId`] ? 'border-red-300' : ''}`}
+                                                    className={`form-select cursor-pointer ${validationErrors[`item_${index}_productId`] ? 'border-red-300' : ''}`}
                                                     disabled={!formData.supplierId}
                                                 >
                                                     <option value="">-- Select Product --</option>
@@ -4731,6 +6061,767 @@ const FiTag = ({ className }) => (
 );
 
 ================
+File: app/suppliers/new/page.js
+================
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+    FiArrowLeft,
+    FiSearch,
+    FiPlus,
+    FiCheck,
+    FiSave,
+    FiFilter,
+    FiMapPin,
+    FiMail,
+    FiPhone,
+    FiGlobe,
+    FiInfo,
+    FiAlertCircle,
+    FiCpu
+} from 'react-icons/fi';
+import { mockSuppliers } from '@/lib/mockData';
+
+export default function NewSupplierPage() {
+    // State for tab navigation
+    const [activeTab, setActiveTab] = useState('standard');
+
+    // State for standard search
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+
+    // State for AI search
+    const [aiDescription, setAiDescription] = useState('');
+    const [aiCategories, setAiCategories] = useState([]);
+    const [aiSearchLoading, setAiSearchLoading] = useState(false);
+    const [aiResults, setAiResults] = useState([]);
+
+    // State for selected supplier
+    const [selectedSupplier, setSelectedSupplier] = useState(null);
+
+    // State for new supplier form
+    const [formData, setFormData] = useState({
+        name: '',
+        category: '',
+        subcategory: '',
+        location: '',
+        region: '',
+        description: '',
+        website: 'https://',
+        contactEmail: '',
+        contactPhone: '',
+        products: [{ name: '', category: '', leadTime: '', minOrderQty: 1, unitPrice: 0 }]
+    });
+
+    // Available categories for dropdown
+    const categories = ['Electronics', 'Raw Materials', 'Packaging', 'Logistics', 'Services', 'Chemicals'];
+
+    // Available locations for dropdown
+    const locations = ['North America', 'Europe', 'Asia', 'South America', 'Africa', 'Australia'];
+
+    // AI search categories/criteria
+    const aiCriteriaOptions = [
+        { id: 'sustainable', label: 'Sustainable/Green' },
+        { id: 'certified', label: 'ISO Certified' },
+        { id: 'local', label: 'Local Supplier' },
+        { id: 'budget', label: 'Budget-Friendly' },
+        { id: 'premium', label: 'Premium Quality' },
+        { id: 'fast', label: 'Fast Delivery' },
+        { id: 'innovative', label: 'Innovative Solutions' },
+        { id: 'global', label: 'Global Reach' }
+    ];
+
+    // Handle standard search
+    useEffect(() => {
+        if (searchTerm.length >= 2) {
+            const results = mockSuppliers.filter(supplier =>
+                supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                supplier.category.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setSearchResults(results);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchTerm]);
+
+    // Handle selecting a supplier from search results
+    const handleSelectSupplier = (supplier) => {
+        setSelectedSupplier(supplier);
+        
+        // Update the form data with the selected supplier info
+        setFormData({
+            name: supplier.name,
+            category: supplier.category,
+            subcategory: supplier.subcategory || '',
+            location: supplier.location, // Use the location attribute directly
+            region: supplier.region || '', // Store the region separately
+            description: supplier.description,
+            website: supplier.website,
+            contactEmail: supplier.contactEmail,
+            contactPhone: supplier.contactPhone,
+            products: supplier.products || [{ name: '', category: '', leadTime: '', minOrderQty: 1, unitPrice: 0 }]
+        });
+    };
+
+    // Handle AI search criteria selection
+    const handleAiCriteriaChange = (criteriaId) => {
+        if (aiCategories.includes(criteriaId)) {
+            setAiCategories(aiCategories.filter(id => id !== criteriaId));
+        } else {
+            setAiCategories([...aiCategories, criteriaId]);
+        }
+    };
+
+    // Handle AI search submission
+    const handleAiSearch = async () => {
+        if (!aiDescription) {
+            return;
+        }
+
+        setAiSearchLoading(true);
+
+        try {
+            // In the real implementation, this would call the external API endpoint
+            // const response = await fetch('/api/getNewSuppliers', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({
+            //         description: aiDescription,
+            //         criteria: aiCategories
+            //     })
+            // });
+            // const data = await response.json();
+            // setAiResults(data.results);
+
+            // For now, simulate API call with mock data and setTimeout
+            setTimeout(() => {
+                // Filter mock suppliers based on criteria as a simulation
+                const filteredResults = mockSuppliers
+                    .filter(s => {
+                        // Very basic filtering logic for demo purposes
+                        if (aiCategories.includes('sustainable') && !s.description.toLowerCase().includes('sustainable')) {
+                            return false;
+                        }
+                        if (aiCategories.includes('premium') && s.currentPricing !== 'Premium') {
+                            return false;
+                        }
+                        return true;
+                    })
+                    .slice(0, 3); // Limit to 3 results for demo
+
+                setAiResults(filteredResults);
+                setAiSearchLoading(false);
+            }, 2000);
+        } catch (error) {
+            console.error('Error performing AI search:', error);
+            setAiSearchLoading(false);
+        }
+    };
+
+    // Handle form input changes
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Handle adding a new product field
+    const handleAddProduct = () => {
+        setFormData(prev => ({
+            ...prev,
+            products: [...prev.products, { name: '', category: '', leadTime: '', minOrderQty: 1, unitPrice: 0 }]
+        }));
+    };
+
+    // Handle product field changes
+    const handleProductChange = (index, field, value) => {
+        const updatedProducts = [...formData.products];
+        updatedProducts[index] = {
+            ...updatedProducts[index],
+            [field]: value
+        };
+
+        setFormData(prev => ({
+            ...prev,
+            products: updatedProducts
+        }));
+    };
+
+    // Handle removing a product
+    const handleRemoveProduct = (index) => {
+        if (formData.products.length <= 1) return;
+
+        const updatedProducts = formData.products.filter((_, i) => i !== index);
+        setFormData(prev => ({
+            ...prev,
+            products: updatedProducts
+        }));
+    };
+
+    // Handle form submission
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Here, you would typically send the data to your backend API
+        // For now, we'll just log it
+        console.log('New supplier data:', formData);
+
+        // Show success message and redirect
+        alert('Supplier added successfully!');
+        // In a real app, you would use router.push('/suppliers') to redirect
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <Link href="/suppliers" className="p-2 rounded-full hover:bg-gray-100 mr-2">
+                        <FiArrowLeft className="h-5 w-5 text-gray-600" />
+                    </Link>
+                    <h1 className="text-2xl font-bold text-gray-800">Add New Supplier</h1>
+                </div>
+                <div className="flex space-x-3">
+                    <button
+                        onClick={handleSubmit}
+                        className="btn-primary flex items-center cursor-pointer"
+                    >
+                        <FiSave className="mr-2" />
+                        Save Supplier
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="mb-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-2">Find a Supplier</h2>
+                    <p className="text-gray-600">
+                        Search for existing suppliers or use AI to discover new potential suppliers based on your requirements.
+                    </p>
+                </div>
+
+                {/* Tab Navigation */}
+                <div className="border-b border-gray-200 mb-6">
+                    <nav className="flex -mb-px space-x-8">
+                        <button
+                            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer ${activeTab === 'standard'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            onClick={() => setActiveTab('standard')}
+                        >
+                            Standard Search
+                        </button>
+                        <button
+                            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer ${activeTab === 'ai'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            onClick={() => setActiveTab('ai')}
+                        >
+                            <div className="flex items-center">
+                                <FiCpu className="mr-2" />
+                                AI-Powered Search
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+
+                {/* Standard Search Content */}
+                {activeTab === 'standard' && (
+                    <div>
+                        <div className="mb-6">
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <FiSearch className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Search suppliers by name or category..."
+                                    className="form-input pl-10 w-full"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Search Results */}
+                        {searchResults.length > 0 && (
+                            <div className="mb-6 border rounded-lg overflow-hidden">
+                                <div className="px-6 py-4 bg-gray-50 border-b">
+                                    <h3 className="text-sm font-medium text-gray-700">
+                                        Search Results ({searchResults.length})
+                                    </h3>
+                                </div>
+                                <div className="divide-y divide-gray-200">
+                                    {searchResults.map((supplier) => (
+                                        <div
+                                            key={supplier.id}
+                                            className="px-6 py-4 hover:bg-gray-50 cursor-pointer"
+                                            onClick={() => handleSelectSupplier(supplier)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h4 className="text-md font-medium text-gray-900">{supplier.name}</h4>
+                                                    <div className="flex items-center text-sm text-gray-600 mt-1">
+                                                        <span className="flex items-center mr-4">
+                                                            <FiFilter className="h-4 w-4 mr-1" />
+                                                            {supplier.category}
+                                                        </span>
+                                                        <span className="flex items-center">
+                                                            <FiMapPin className="h-4 w-4 mr-1" />
+                                                            {supplier.region || supplier.location}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                                    Select
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {searchTerm.length >= 2 && searchResults.length === 0 && (
+                            <div className="mb-6 text-center py-8 border rounded-lg">
+                                <FiAlertCircle className="mx-auto h-10 w-10 text-gray-400" />
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers found</h3>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Try a different search term or create a new supplier.
+                                </p>
+                            </div>
+                        )}
+
+                        {searchTerm.length === 0 && (
+                            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                                <div className="flex items-start">
+                                    <FiInfo className="h-5 w-5 text-blue-500 mt-0.5 mr-3" />
+                                    <div>
+                                        <h4 className="font-medium text-blue-800 mb-1">Search Tips</h4>
+                                        <ul className="text-sm text-blue-700 space-y-1">
+                                            <li>• Search by supplier name or category</li>
+                                            <li>• Type at least 2 characters to start searching</li>
+                                            <li>• Select a supplier from the results to pre-fill the form</li>
+                                            <li>• Or fill out the form below to create a new supplier</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* AI-Powered Search Content */}
+                {activeTab === 'ai' && (
+                    <div>
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Describe your supplier requirements
+                            </label>
+                            <textarea
+                                rows={4}
+                                className="form-input"
+                                placeholder="E.g., I need an electronics component supplier with experience in microcontrollers and sensors, preferably in Asia with ISO certification..."
+                                value={aiDescription}
+                                onChange={(e) => setAiDescription(e.target.value)}
+                            ></textarea>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Additional criteria (optional)
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                {aiCriteriaOptions.map((option) => (
+                                    <div key={option.id} className="flex items-center">
+                                        <input
+                                            id={`criteria-${option.id}`}
+                                            type="checkbox"
+                                            className="form-checkbox cursor-pointer"
+                                            checked={aiCategories.includes(option.id)}
+                                            onChange={() => handleAiCriteriaChange(option.id)}
+                                        />
+                                        <label
+                                            htmlFor={`criteria-${option.id}`}
+                                            className="ml-2 text-sm text-gray-700 cursor-pointer"
+                                        >
+                                            {option.label}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <button
+                                onClick={handleAiSearch}
+                                disabled={!aiDescription || aiSearchLoading}
+                                className="btn-primary flex items-center cursor-pointer"
+                            >
+                                {aiSearchLoading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Finding Suppliers...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiCpu className="mr-2" />
+                                        Find Suppliers with AI
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* AI Search Results */}
+                        {aiResults.length > 0 && (
+                            <div className="mb-6 border rounded-lg overflow-hidden">
+                                <div className="px-6 py-4 bg-gray-50 border-b">
+                                    <h3 className="text-sm font-medium text-gray-700">
+                                        AI-Recommended Suppliers ({aiResults.length})
+                                    </h3>
+                                </div>
+                                <div className="divide-y divide-gray-200">
+                                    {aiResults.map((supplier) => (
+                                        <div
+                                            key={supplier.id}
+                                            className="px-6 py-4 hover:bg-gray-50"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h4 className="text-md font-medium text-gray-900">{supplier.name}</h4>
+                                                    <p className="text-sm text-gray-600 mt-1 mb-2">{supplier.description}</p>
+                                                    <div className="flex items-center text-sm text-gray-600">
+                                                        <span className="flex items-center mr-4">
+                                                            <FiFilter className="h-4 w-4 mr-1" />
+                                                            {supplier.category}
+                                                        </span>
+                                                        <span className="flex items-center">
+                                                            <FiMapPin className="h-4 w-4 mr-1" />
+                                                            {supplier.region || supplier.location}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleSelectSupplier(supplier)}
+                                                    className="btn-secondary text-sm cursor-pointer"
+                                                >
+                                                    Select
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {aiSearchLoading === false && aiResults.length === 0 && aiDescription && (
+                            <div className="mb-6 p-4 bg-gray-50 rounded-lg text-center">
+                                <p className="text-gray-600">
+                                    Enter your requirements and click "Find Suppliers with AI" to get recommendations.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Common Supplier Form */}
+                <div className="border-t pt-6 mt-6">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">
+                        {selectedSupplier ? 'Edit Supplier Details' : 'Create New Supplier'}
+                    </h3>
+
+                    <form onSubmit={handleSubmit}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Basic Information */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Supplier Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleFormChange}
+                                    className="form-input"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Category <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleFormChange}
+                                    className="form-select cursor-pointer"
+                                    required
+                                >
+                                    <option value="">-- Select Category --</option>
+                                    {categories.map((category) => (
+                                        <option key={category} value={category}>
+                                            {category}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Subcategory
+                                </label>
+                                <input
+                                    type="text"
+                                    name="subcategory"
+                                    value={formData.subcategory}
+                                    onChange={handleFormChange}
+                                    className="form-input"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Location <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    name="location"
+                                    value={formData.region}
+                                    onChange={handleFormChange}
+                                    className="form-select cursor-pointer"
+                                    required
+                                >
+                                    <option value="">-- Select Location --</option>
+                                    {locations.map((location) => (
+                                        <option key={location} value={location}>
+                                            {location}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Contact Information */}
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Description <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleFormChange}
+                                    rows={3}
+                                    className="form-input"
+                                    required
+                                ></textarea>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Website
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiGlobe className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="url"
+                                        name="website"
+                                        value={formData.website}
+                                        onChange={handleFormChange}
+                                        className="form-input pl-10"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Contact Email <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiMail className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        name="contactEmail"
+                                        value={formData.contactEmail}
+                                        onChange={handleFormChange}
+                                        className="form-input pl-10"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Contact Phone <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiPhone className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        name="contactPhone"
+                                        value={formData.contactPhone}
+                                        onChange={handleFormChange}
+                                        className="form-input pl-10"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Products */}
+                        <div className="mt-8">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium text-gray-800">Products & Services</h3>
+                                <button
+                                    type="button"
+                                    onClick={handleAddProduct}
+                                    className="text-sm bg-blue-50 text-blue-600 py-1 px-3 rounded-md border border-blue-200 hover:bg-blue-100 flex items-center cursor-pointer"
+                                >
+                                    <FiPlus className="mr-1 h-4 w-4" />
+                                    Add Product
+                                </button>
+                            </div>
+
+                            {formData.products.map((product, index) => (
+                                <div
+                                    key={index}
+                                    className="border rounded-lg p-4 mb-4"
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h4 className="text-md font-medium text-gray-800">Product #{index + 1}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveProduct(index)}
+                                            className="text-red-500 hover:text-red-700 cursor-pointer"
+                                            disabled={formData.products.length <= 1}
+                                        >
+                                            <FiX className="h-5 w-5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Product Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={product.name}
+                                                onChange={(e) => handleProductChange(index, 'name', e.target.value)}
+                                                className="form-input"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Category
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={product.category}
+                                                onChange={(e) => handleProductChange(index, 'category', e.target.value)}
+                                                className="form-input"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Lead Time
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={product.leadTime}
+                                                onChange={(e) => handleProductChange(index, 'leadTime', e.target.value)}
+                                                className="form-input"
+                                                placeholder="e.g., 2-3 weeks"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Min Order Qty
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={product.minOrderQty}
+                                                onChange={(e) => handleProductChange(index, 'minOrderQty', parseInt(e.target.value))}
+                                                className="form-input"
+                                                min="1"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Unit Price ($)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={product.unitPrice}
+                                                onChange={(e) => handleProductChange(index, 'unitPrice', parseFloat(e.target.value))}
+                                                className="form-input"
+                                                min="0"
+                                                step="0.01"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Submit Button */}
+                        <div className="mt-8 flex justify-end">
+                            <Link
+                                href="/suppliers"
+                                className="mr-4 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </Link>
+                            <button
+                                type="submit"
+                                className="btn-primary cursor-pointer"
+                            >
+                                {selectedSupplier ? 'Update Supplier' : 'Add Supplier'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Missing icon components
+const FiX = ({ className }) => (
+    <svg
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M6 18L18 6M6 6l12 12"
+        />
+    </svg>
+);
+
+================
 File: app/suppliers/page.js
 ================
 'use client';
@@ -4884,7 +6975,7 @@ export default function SuppliersPage() {
                                 Category
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.category}
                                 onChange={(e) => handleFilterChange('category', e.target.value)}
                             >
@@ -4903,7 +6994,7 @@ export default function SuppliersPage() {
                                 Location
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.location}
                                 onChange={(e) => handleFilterChange('location', e.target.value)}
                             >
@@ -4922,7 +7013,7 @@ export default function SuppliersPage() {
                                 Minimum Rating
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.rating}
                                 onChange={(e) => handleFilterChange('rating', e.target.value)}
                             >
@@ -4940,7 +7031,7 @@ export default function SuppliersPage() {
                                 Compliance Status
                             </label>
                             <select
-                                className="form-select"
+                                className="form-select cursor-pointer"
                                 value={filters.complianceStatus}
                                 onChange={(e) => handleFilterChange('complianceStatus', e.target.value)}
                             >
@@ -5112,6 +7203,19 @@ body {
     sans-serif;
 }
 
+button {
+  cursor: pointer !important;
+}
+
+a,
+option {
+  cursor: pointer !important;
+}
+
+.form-checkbox {
+  cursor: pointer;
+}
+
 @layer components {
   .btn-primary {
     @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors;
@@ -5249,7 +7353,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
                 <div className="flex space-x-3">
-                <Link href="/report" className="btn-primary flex items-center">
+                    <Link href="/report" className="btn-primary flex items-center">
                         <FiBarChart2 className="mr-2" />
                         Go to Data Report
                     </Link>
@@ -5376,7 +7480,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-medium text-gray-800 mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Link
-                        href="/suppliers/search"
+                        href="/suppliers/new"
                         className="flex items-center justify-center p-4 border rounded-md hover:bg-blue-50 transition-colors"
                     >
                         <span className="text-blue-600 mr-2">
@@ -7212,6 +9316,7 @@ File: public/window.svg
 File: .gitignore
 ================
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+repomix-output.txt
 
 # dependencies
 /node_modules
@@ -7291,6 +9396,8 @@ File: package.json
     "chart.js": "^4.4.8",
     "date-fns": "^4.1.0",
     "json2csv": "^6.0.0-alpha.2",
+    "jspdf": "^3.0.0",
+    "jspdf-autotable": "^5.0.2",
     "next": "15.2.2",
     "postcss": "^8.5.3",
     "react": "^19.0.0",

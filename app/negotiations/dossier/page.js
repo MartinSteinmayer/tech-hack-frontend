@@ -15,6 +15,8 @@ import {
     FiInfo
 } from 'react-icons/fi';
 import { mockSuppliers } from '@/lib/mockData';
+import { jsPDF } from 'jspdf';
+import "jspdf-autotable";
 
 export default function DossierGeneratorPage() {
     const searchParams = useSearchParams();
@@ -255,8 +257,189 @@ Contract Duration: 24 months with quarterly pricing reviews
     };
 
     const downloadDossier = () => {
-        // In a real app, this would download a PDF
-        alert('Download functionality would be implemented in the final application');
+        // Create a new PDF document
+        const doc = new jsPDF();
+
+        // Set initial position
+        let yPos = 20;
+        const leftMargin = 20;
+        const pageWidth = doc.internal.pageSize.width;
+
+        // Add company logo placeholder (optional)
+        // doc.addImage(logoDataUrl, 'PNG', leftMargin, yPos, 40, 15);
+
+        // Add title
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 51, 102); // Dark blue
+        doc.text(`Negotiation Dossier`, leftMargin, yPos);
+        yPos += 10;
+
+        // Add supplier name
+        doc.setFontSize(18);
+        doc.setTextColor(0, 0, 0);
+        doc.text(dossier.supplierName, leftMargin, yPos);
+        yPos += 10;
+
+        // Add generated date and disclaimer
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100); // Gray
+        doc.text(`Generated on ${new Date(dossier.generatedDate).toLocaleDateString()}`, leftMargin, yPos);
+        doc.text('AI-generated content. Review for accuracy.', pageWidth - 90, yPos);
+        yPos += 15;
+
+        // Add horizontal line
+        doc.setDrawColor(200, 200, 200); // Light gray
+        doc.setLineWidth(0.5);
+        doc.line(leftMargin, yPos, pageWidth - leftMargin, yPos);
+        yPos += 10;
+
+        // Process each section
+        for (const section of dossier.sections) {
+            // Check if we need a new page
+            if (yPos > 260) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            // Add section title
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 102, 204); // Blue
+            doc.text(section.title, leftMargin, yPos);
+            yPos += 8;
+
+            // Add section content
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0); // Black
+
+            // Special formatting for SWOT Analysis
+            if (section.title === 'SWOT Analysis') {
+                // Parse the SWOT content - assuming the format is consistent
+                const swotContent = section.content.trim();
+                const swotSections = swotContent.split(/\n(?=Strengths:|Weaknesses:|Opportunities:|Threats:)/g);
+
+                for (const swotSection of swotSections) {
+                    if (swotSection.trim() === '') continue;
+
+                    // Check if we need a new page
+                    if (yPos > 240) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    const lines = swotSection.split('\n');
+                    const title = lines[0];
+
+                    // Add SWOT category title
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(title, leftMargin, yPos);
+                    yPos += 6;
+
+                    // Add bullet points
+                    doc.setFont('helvetica', 'normal');
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line === '' || !line.startsWith('-')) continue;
+
+                        // Format bullet point
+                        const bulletText = line.substring(1).trim();
+                        const formattedText = doc.splitTextToSize(bulletText, pageWidth - 50);
+
+                        // Check if we need a new page
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        // Add bullet and text
+                        doc.text('•', leftMargin, yPos);
+                        doc.text(formattedText, leftMargin + 5, yPos);
+                        yPos += 6 * formattedText.length;
+                    }
+
+                    yPos += 5; // Extra space between SWOT categories
+                }
+            }
+            // Special formatting for Negotiation Strategy
+            else if (section.title === 'Negotiation Strategy' ||
+                section.title === 'Risk Assessment' ||
+                section.title === 'Recommended Targets') {
+                const lines = section.content.split('\n');
+                let isInList = false;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line === '') continue;
+
+                    // Check if we need a new page
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    // Handle bullet points or numbered lists
+                    if (line.match(/^\d+\.\s/) || line.startsWith('-')) {
+                        isInList = true;
+                        const textIndent = line.match(/^\d+\.\s/) ? 8 : 5;
+                        const bulletText = line.match(/^\d+\.\s/) ?
+                            line : line.substring(1).trim();
+
+                        const formattedText = doc.splitTextToSize(bulletText, pageWidth - 50);
+                        doc.text(formattedText, leftMargin + textIndent, yPos);
+                        yPos += 6 * formattedText.length;
+                    }
+                    // Handle category/subheadings
+                    else if (line.endsWith(':')) {
+                        isInList = false;
+                        yPos += 3; // Add extra space before subheading
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(line, leftMargin, yPos);
+                        doc.setFont('helvetica', 'normal');
+                        yPos += 6;
+                    }
+                    // Regular paragraph text
+                    else {
+                        isInList = false;
+                        const formattedText = doc.splitTextToSize(line, pageWidth - 40);
+                        doc.text(formattedText, leftMargin, yPos);
+                        yPos += 6 * formattedText.length;
+                    }
+                }
+            }
+            // Regular text section
+            else {
+                const textLines = doc.splitTextToSize(section.content, pageWidth - 40);
+                doc.text(textLines, leftMargin, yPos);
+                yPos += 6 * textLines.length;
+            }
+
+            // Add spacing between sections
+            yPos += 10;
+
+            // Add section divider
+            if (section !== dossier.sections[dossier.sections.length - 1]) {
+                doc.setDrawColor(230, 230, 230);
+                doc.setLineWidth(0.3);
+                doc.line(leftMargin, yPos - 5, pageWidth - leftMargin, yPos - 5);
+            }
+        }
+
+        // Add footer with page numbers
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Page ${i} of ${pageCount} | ${dossier.supplierName} Negotiation Dossier`,
+                pageWidth / 2, 290, { align: 'center' });
+        }
+
+        // Save the PDF
+        const filename = `${dossier.supplierName.replace(/\s+/g, '_')}_Negotiation_Dossier.pdf`;
+        doc.save(filename);
     };
 
     // If we've generated a dossier, show it
