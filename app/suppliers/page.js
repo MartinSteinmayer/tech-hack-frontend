@@ -365,7 +365,7 @@ export default function SuppliersPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-5 flex justify-end space-x-3">
+                                    <div className="mt-5 flex justify-end items-center space-x-3">
                                         <Link
                                             href={`/negotiations?supplierId=${supplier.id}`}
                                             className="text-sm text-blue-600 hover:text-blue-800 font-medium"

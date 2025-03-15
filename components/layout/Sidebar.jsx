@@ -35,7 +35,7 @@ const Sidebar = () => {
             <div className="lg:hidden absolute z-50 top-4 left-4">
                 <button
                     onClick={toggleSidebar}
-                    className="p-2 rounded-md text-gray-500 hover:text-gray-600 focus:outline-none"
+                    className="p-2 cursor-pointer rounded-md text-gray-500 hover:text-gray-600 focus:outline-none"
                 >
                     {collapsed ? <FiMenu size={24} /> : <FiX size={24} />}
                 </button>
@@ -62,24 +62,24 @@ const Sidebar = () => {
 
                 {/* Navigation */}
                 <nav className="mt-6 px-3">
-                    <div className="space-y-1">
+                    <div className="space-y-3">
                         {navigation.map((item) => {
                             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                             return (
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'text-gray-700 hover:bg-gray-100'
+                                    className={`group flex items-center px-4 py-2 text-sm font-medium rounded-md ${isActive
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <item.icon
-                                        className={`mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-blue-700' : 'text-gray-500'
+                                        className={`mr-3 flex-shrink-0 h-14 w-6 ${isActive ? 'text-blue-700' : 'text-gray-500'
                                             }`}
                                         aria-hidden="true"
                                     />
-                                    {!collapsed && <span>{item.name}</span>}
+                                    {!collapsed && <span className='ml-2'>{item.name}</span>}
                                 </Link>
                             );
                         })}
