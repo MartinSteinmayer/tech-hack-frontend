@@ -18,6 +18,7 @@ import {
     FiChevronRight
 } from 'react-icons/fi';
 import { orderApi } from '../../lib/api';
+import { mockOrders } from '@/lib/mockData';
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState([]);
@@ -31,8 +32,6 @@ export default function OrdersPage() {
         totalValue: 0
     });
     const [filter, setFilter] = useState('all');
-
-    // Mock data for orders
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -399,7 +398,7 @@ export default function OrdersPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : 'N/A'}
-                                            {order.status === 'processing' && new Date(order.deliveryDate) < new Date() && (
+                                            {order.status === 'processing' && order.deliveryDate && new Date(order.deliveryDate) < new Date() && (
                                                 <span className="ml-2 text-yellow-600 text-xs font-medium">
                                                     Delayed
                                                 </span>

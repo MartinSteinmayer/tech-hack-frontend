@@ -15,6 +15,7 @@ import {
     FiBarChart2
 } from 'react-icons/fi';
 import { negotiationApi, supplierApi } from '@/lib/api';
+import { mockNegotiations, getSupplierById } from '@/lib/mockData';
 
 export default function NegotiationsPage() {
     const searchParams = useSearchParams();
@@ -23,29 +24,6 @@ export default function NegotiationsPage() {
     const [activeNegotiations, setActiveNegotiations] = useState([]);
     const [supplier, setSupplier] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    // Mock data for negotiations
-
-    // Mock data for supplier
-    const mockSupplier = supplierId ? {
-        id: parseInt(supplierId),
-        name: 'ElectroTech Industries',
-        category: 'Electronics',
-        products: ['Microcontrollers', 'Sensors', 'PCB Assemblies'],
-        lastNegotiation: '2023-06-15',
-        averageDiscount: 7.5,
-        currentPricing: 'Premium',
-        reliability: 92,
-        communicationScore: 90,
-        preferredCommunication: 'Email',
-        paymentTerms: 'Net 30',
-        contractExpiry: '2024-03-15',
-        negotiationHistory: [
-            { date: '2023-06-15', outcome: 'Success', savings: 8.2 },
-            { date: '2022-12-10', outcome: 'Partial', savings: 5.0 },
-            { date: '2022-06-22', outcome: 'Success', savings: 7.5 },
-        ]
-    } : null;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -64,8 +42,32 @@ export default function NegotiationsPage() {
                 // For the hackathon, use mock data
                 setTimeout(() => {
                     if (supplierId) {
-                        setSupplier(mockSupplier);
-                        setActiveNegotiations(mockNegotiations.filter(n => n.supplierId === parseInt(supplierId)));
+                        // Use the getSupplierById helper function from mockData.js
+                        const supplierData = getSupplierById(supplierId);
+
+                        if (supplierData) {
+                            // If we found the supplier, use its data
+                            setSupplier({
+                                id: supplierData.id,
+                                name: supplierData.name,
+                                category: supplierData.category,
+                                products: supplierData.products.map(p => p.name),
+                                lastNegotiation: supplierData.negotiationHistory?.[0]?.date || new Date().toISOString(),
+                                averageDiscount: supplierData.averageDiscount,
+                                currentPricing: supplierData.currentPricing,
+                                reliability: supplierData.reliabilityScore,
+                                communicationScore: supplierData.communicationScore,
+                                preferredCommunication: 'Email',
+                                paymentTerms: supplierData.paymentTerms,
+                                contractExpiry: supplierData.contractExpiry,
+                                negotiationHistory: supplierData.negotiationHistory || []
+                            });
+
+                            setActiveNegotiations(mockNegotiations.filter(n => n.supplierId === parseInt(supplierId)));
+                        } else {
+                            // If supplier not found, show empty state
+                            setActiveNegotiations([]);
+                        }
                     } else {
                         setActiveNegotiations(mockNegotiations);
                     }
@@ -223,6 +225,7 @@ export default function NegotiationsPage() {
                 </div>
             )}
 
+            {/* Rest of the component remains the same */}
             {/* Active Negotiations */}
             <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b border-gray-200 flex justify-between items-center">
