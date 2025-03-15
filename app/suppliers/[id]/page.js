@@ -20,6 +20,7 @@ import {
     FiShoppingCart
 } from 'react-icons/fi';
 import { supplierApi } from '../../../lib/api';
+import { mockSuppliers, getSupplierById } from '@/lib/mockData';
 
 export default function SupplierDetailsPage() {
     const params = useParams();
@@ -30,57 +31,6 @@ export default function SupplierDetailsPage() {
     const [activeTab, setActiveTab] = useState('overview');
 
     // Mock supplier data
-    const mockSupplierData = {
-        id: supplierId,
-        name: 'ElectroTech Industries',
-        logo: '/images/supplier1.png',
-        description: 'ElectroTech Industries is a leading supplier of electronic components and assemblies for various industries including automotive, consumer electronics, and industrial automation.',
-        category: 'Electronics',
-        subcategory: 'Electronic Components',
-        location: 'Shanghai, China',
-        foundedYear: 2005,
-        employees: '1000-5000',
-        website: 'https://electrotech-industries.example.com',
-        contactEmail: 'info@electrotech-industries.example.com',
-        contactPhone: '+86 21 5555 1234',
-        rating: 4.8,
-        reliabilityScore: 92,
-        qualityScore: 95,
-        deliveryScore: 88,
-        communicationScore: 90,
-        status: 'active',
-        complianceStatus: 'compliant',
-        lastOrder: '2023-09-15',
-        certifications: [
-            { name: 'ISO 9001:2015', valid: true, expirationDate: '2025-06-30' },
-            { name: 'ISO 14001:2015', valid: true, expirationDate: '2024-11-15' },
-            { name: 'RoHS Compliant', valid: true, expirationDate: '2024-12-31' },
-        ],
-        performanceHistory: [
-            { month: 'Aug 2023', onTimeDelivery: 95, qualityCompliance: 98, costVariance: -2 },
-            { month: 'Jul 2023', onTimeDelivery: 92, qualityCompliance: 97, costVariance: -1 },
-            { month: 'Jun 2023', onTimeDelivery: 94, qualityCompliance: 95, costVariance: 0 },
-            { month: 'May 2023', onTimeDelivery: 90, qualityCompliance: 96, costVariance: -3 },
-            { month: 'Apr 2023', onTimeDelivery: 88, qualityCompliance: 94, costVariance: -2 },
-            { month: 'Mar 2023', onTimeDelivery: 91, qualityCompliance: 93, costVariance: 1 },
-        ],
-        riskFactors: [
-            { category: 'Geopolitical', level: 'medium', description: 'Located in region with occasional political tensions' },
-            { category: 'Supply Chain', level: 'low', description: 'Multiple backup suppliers and robust inventory management' },
-            { category: 'Financial', level: 'low', description: 'Strong financial position with consistent growth' },
-        ],
-        products: [
-            { id: 1, name: 'Microcontrollers', category: 'Semiconductors', leadTime: '2-3 weeks', minOrderQty: 1000 },
-            { id: 2, name: 'Sensors', category: 'Electronic Components', leadTime: '1-2 weeks', minOrderQty: 500 },
-            { id: 3, name: 'PCB Assemblies', category: 'Assemblies', leadTime: '3-4 weeks', minOrderQty: 100 },
-        ],
-        recentOrders: [
-            { id: 'ORD-2023-421', date: '2023-09-15', status: 'Delivered', amount: 45000 },
-            { id: 'ORD-2023-387', date: '2023-08-28', status: 'Delivered', amount: 32000 },
-            { id: 'ORD-2023-352', date: '2023-07-15', status: 'Delivered', amount: 58000 },
-        ],
-    };
-
     useEffect(() => {
         const fetchSupplierDetails = async () => {
             try {
@@ -88,9 +38,10 @@ export default function SupplierDetailsPage() {
                 // const response = await supplierApi.getById(supplierId);
                 // setSupplier(response.data);
 
-                // For the hackathon, use mock data
+                // For the hackathon, use mock data and find the specific supplier by ID
                 setTimeout(() => {
-                    setSupplier(mockSupplierData);
+                    const supplierData = getSupplierById(supplierId);
+                    setSupplier(supplierData);
                     setLoading(false);
                 }, 700);
             } catch (error) {

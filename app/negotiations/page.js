@@ -14,7 +14,7 @@ import {
     FiDollarSign,
     FiBarChart2
 } from 'react-icons/fi';
-import { negotiationApi, supplierApi } from '../../lib/api';
+import { negotiationApi, supplierApi } from '@/lib/api';
 
 export default function NegotiationsPage() {
     const searchParams = useSearchParams();
@@ -25,66 +25,6 @@ export default function NegotiationsPage() {
     const [loading, setLoading] = useState(true);
 
     // Mock data for negotiations
-    const mockNegotiations = [
-        {
-            id: 1,
-            supplierId: 1,
-            supplierName: 'ElectroTech Industries',
-            category: 'Electronics',
-            startDate: '2023-09-10',
-            status: 'active',
-            nextAction: 'Awaiting supplier response',
-            lastActivity: '2023-09-15',
-            products: ['Microcontrollers', 'Sensors'],
-            targetSavings: 8.5,
-            currentStage: 'Counter Offer',
-            priority: 'high'
-        },
-        {
-            id: 2,
-            supplierId: 2,
-            supplierName: 'Global Packaging Solutions',
-            category: 'Packaging',
-            startDate: '2023-09-05',
-            status: 'active',
-            nextAction: 'Review supplier proposal',
-            lastActivity: '2023-09-14',
-            products: ['Custom Boxes', 'Protective Packaging'],
-            targetSavings: 5.2,
-            currentStage: 'Initial Proposal',
-            priority: 'medium'
-        },
-        {
-            id: 3,
-            supplierId: 3,
-            supplierName: 'RawMat Suppliers Inc',
-            category: 'Raw Materials',
-            startDate: '2023-08-28',
-            status: 'scheduled',
-            nextAction: 'Kickoff meeting on 2023-09-20',
-            lastActivity: '2023-09-12',
-            products: ['Industrial Polymers', 'Adhesives'],
-            targetSavings: 7.0,
-            currentStage: 'Planning',
-            priority: 'low'
-        },
-        {
-            id: 4,
-            supplierId: 5,
-            supplierName: 'Quality Service Providers',
-            category: 'Services',
-            startDate: '2023-08-15',
-            status: 'completed',
-            nextAction: 'Implementation',
-            lastActivity: '2023-09-08',
-            products: ['Consulting Services', 'Quality Audits'],
-            targetSavings: 10.0,
-            currentStage: 'Agreement',
-            priority: 'medium',
-            outcome: 'Success',
-            actualSavings: 11.2
-        },
-    ];
 
     // Mock data for supplier
     const mockSupplier = supplierId ? {
@@ -267,10 +207,10 @@ export default function NegotiationsPage() {
                                     <div className="flex justify-between items-center">
                                         <p className="text-sm">{new Date(history.date).toLocaleDateString()}</p>
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${history.outcome === 'Success'
-                                                ? 'bg-green-100 text-green-800'
-                                                : history.outcome === 'Partial'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-red-100 text-red-800'
+                                            ? 'bg-green-100 text-green-800'
+                                            : history.outcome === 'Partial'
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : 'bg-red-100 text-red-800'
                                             }`}>
                                             {history.outcome}
                                         </span>
@@ -337,10 +277,10 @@ export default function NegotiationsPage() {
                                 <div className="flex flex-col md:flex-row md:justify-between md:items-center">
                                     <div className="flex items-start">
                                         <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${negotiation.priority === 'high'
-                                                ? 'bg-red-100 text-red-600'
-                                                : negotiation.priority === 'medium'
-                                                    ? 'bg-yellow-100 text-yellow-600'
-                                                    : 'bg-green-100 text-green-600'
+                                            ? 'bg-red-100 text-red-600'
+                                            : negotiation.priority === 'medium'
+                                                ? 'bg-yellow-100 text-yellow-600'
+                                                : 'bg-green-100 text-green-600'
                                             }`}>
                                             <FiBriefcase className="h-5 w-5" />
                                         </div>
@@ -350,10 +290,10 @@ export default function NegotiationsPage() {
                                                     {negotiation.supplierName}
                                                 </h3>
                                                 <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${negotiation.status === 'active'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : negotiation.status === 'scheduled'
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : 'bg-gray-100 text-gray-800'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : negotiation.status === 'scheduled'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : 'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {negotiation.status.charAt(0).toUpperCase() + negotiation.status.slice(1)}
                                                 </span>
@@ -415,8 +355,8 @@ export default function NegotiationsPage() {
                                     <div className="mt-4 pt-4 border-t">
                                         <div className="flex items-center">
                                             <div className={`mr-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${negotiation.outcome === 'Success'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
                                                 }`}>
                                                 {negotiation.outcome}
                                             </div>

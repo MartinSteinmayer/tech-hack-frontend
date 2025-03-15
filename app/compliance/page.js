@@ -16,6 +16,7 @@ import {
     FiExternalLink
 } from 'react-icons/fi';
 import { complianceApi } from '../../lib/api';
+import { mockComplianceItems } from '@/lib/mockData';
 
 export default function CompliancePage() {
     const [loading, setLoading] = useState(true);
@@ -28,86 +29,6 @@ export default function CompliancePage() {
     });
 
     // Mock data for compliance items
-    const mockComplianceItems = [
-        {
-            id: 1,
-            supplierId: 1,
-            supplierName: 'ElectroTech Industries',
-            documentType: 'ISO 9001 Certification',
-            status: 'compliant',
-            expiryDate: '2024-06-30',
-            lastChecked: '2023-09-12',
-            category: 'Quality Management',
-            notes: 'Certification verified with issuing body'
-        },
-        {
-            id: 2,
-            supplierId: 1,
-            supplierName: 'ElectroTech Industries',
-            documentType: 'Environmental Policy',
-            status: 'compliant',
-            expiryDate: '2024-11-15',
-            lastChecked: '2023-09-12',
-            category: 'Environmental',
-            notes: 'Document meets all requirements'
-        },
-        {
-            id: 3,
-            supplierId: 2,
-            supplierName: 'Global Packaging Solutions',
-            documentType: 'Food Safety Certification',
-            status: 'review',
-            expiryDate: '2023-10-30',
-            lastChecked: '2023-09-10',
-            category: 'Product Safety',
-            notes: 'Certification expires in less than 60 days'
-        },
-        {
-            id: 4,
-            supplierId: 3,
-            supplierName: 'RawMat Suppliers Inc',
-            documentType: 'REACH Compliance',
-            status: 'non-compliant',
-            expiryDate: '2023-07-15',
-            lastChecked: '2023-09-05',
-            category: 'Regulatory',
-            notes: 'Certification expired, follow-up required'
-        },
-        {
-            id: 5,
-            supplierId: 4,
-            supplierName: 'FastTrack Logistics',
-            documentType: 'Insurance Certificate',
-            status: 'compliant',
-            expiryDate: '2024-02-28',
-            lastChecked: '2023-09-01',
-            category: 'Insurance',
-            notes: 'Coverage meets minimum requirements'
-        },
-        {
-            id: 6,
-            supplierId: 5,
-            supplierName: 'Quality Service Providers',
-            documentType: 'Professional Certifications',
-            status: 'compliant',
-            expiryDate: '2024-05-15',
-            lastChecked: '2023-08-20',
-            category: 'Professional Qualifications',
-            notes: 'All staff certifications verified'
-        },
-        {
-            id: 7,
-            supplierId: 3,
-            supplierName: 'RawMat Suppliers Inc',
-            documentType: 'Fair Labor Practices',
-            status: 'review',
-            expiryDate: null,
-            lastChecked: '2023-09-08',
-            category: 'Social Responsibility',
-            notes: 'Additional documentation requested'
-        },
-    ];
-
     useEffect(() => {
         const fetchComplianceData = async () => {
             try {

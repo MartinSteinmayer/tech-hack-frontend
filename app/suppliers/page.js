@@ -13,6 +13,7 @@ import {
     FiMapPin
 } from 'react-icons/fi';
 import { supplierApi } from '../../lib/api';
+import { mockSuppliers } from '@/lib/mockData';
 
 export default function SuppliersPage() {
     const [suppliers, setSuppliers] = useState([]);
@@ -31,69 +32,6 @@ export default function SuppliersPage() {
     const locations = ['North America', 'Europe', 'Asia', 'South America', 'Africa', 'Australia'];
 
     // Mock data for suppliers
-    const mockSuppliers = [
-        {
-            id: 1,
-            name: 'ElectroTech Industries',
-            logo: '/images/supplier1.png',
-            category: 'Electronics',
-            location: 'Asia',
-            rating: 4.8,
-            reliabilityScore: 92,
-            lastOrder: '2023-09-15',
-            status: 'active',
-            complianceStatus: 'compliant'
-        },
-        {
-            id: 2,
-            name: 'Global Packaging Solutions',
-            logo: '/images/supplier2.png',
-            category: 'Packaging',
-            location: 'Europe',
-            rating: 4.5,
-            reliabilityScore: 88,
-            lastOrder: '2023-08-28',
-            status: 'active',
-            complianceStatus: 'compliant'
-        },
-        {
-            id: 3,
-            name: 'RawMat Suppliers Inc',
-            logo: '/images/supplier3.png',
-            category: 'Raw Materials',
-            location: 'North America',
-            rating: 4.2,
-            reliabilityScore: 85,
-            lastOrder: '2023-09-05',
-            status: 'active',
-            complianceStatus: 'review'
-        },
-        {
-            id: 4,
-            name: 'FastTrack Logistics',
-            logo: '/images/supplier4.png',
-            category: 'Logistics',
-            location: 'North America',
-            rating: 4.6,
-            reliabilityScore: 90,
-            lastOrder: '2023-09-10',
-            status: 'inactive',
-            complianceStatus: 'non-compliant'
-        },
-        {
-            id: 5,
-            name: 'Quality Service Providers',
-            logo: '/images/supplier5.png',
-            category: 'Services',
-            location: 'Europe',
-            rating: 4.1,
-            reliabilityScore: 82,
-            lastOrder: '2023-08-15',
-            status: 'active',
-            complianceStatus: 'compliant'
-        },
-    ];
-
     useEffect(() => {
         const fetchSuppliers = async () => {
             try {
@@ -163,6 +101,10 @@ export default function SuppliersPage() {
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-800">Supplier Discovery</h1>
                 <div className="flex space-x-3">
+                    <Link href="/suppliers/new" className="btn-secondary flex items-center">
+                        <FiPlusCircle className="mr-2" />
+                        Add Supplier
+                    </Link>
                     <Link href="/suppliers/search" className="btn-primary flex items-center">
                         <FiSearch className="mr-2" />
                         Advanced Search
@@ -384,6 +326,17 @@ export default function SuppliersPage() {
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* Add Quick Action for New Supplier */}
+            <div className="fixed bottom-6 right-6">
+                <Link
+                    href="/suppliers/new"
+                    className="flex items-center justify-center h-14 w-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors"
+                    title="Add New Supplier"
+                >
+                    <FiPlusCircle className="h-6 w-6" />
+                </Link>
             </div>
         </div>
     );
