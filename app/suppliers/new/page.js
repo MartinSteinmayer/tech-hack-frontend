@@ -18,6 +18,7 @@ import {
     FiCpu
 } from 'react-icons/fi';
 import { mockSuppliers } from '@/lib/mockData';
+import { searchSuppliers } from '@/lib/supplierApi';
 
 export default function NewSupplierPage() {
     // State for tab navigation
@@ -70,28 +71,22 @@ export default function NewSupplierPage() {
 
     // Handle standard search
     useEffect(() => {
-        if (searchTerm.length >= 2) {
-            const results = mockSuppliers.filter(supplier =>
-                supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                supplier.category.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setSearchResults(results);
-        } else {
-            setSearchResults([]);
-        }
+        // Using the searchSuppliers function from the API adapter
+        const results = searchSuppliers(searchTerm, mockSuppliers);
+        setSearchResults(results);
     }, [searchTerm]);
 
     // Handle selecting a supplier from search results
     const handleSelectSupplier = (supplier) => {
         setSelectedSupplier(supplier);
-        
+
         // Update the form data with the selected supplier info
         setFormData({
             name: supplier.name,
             category: supplier.category,
             subcategory: supplier.subcategory || '',
-            location: supplier.location, // Use the location attribute directly
-            region: supplier.region || '', // Store the region separately
+            location: supplier.location,
+            region: supplier.region || '',
             description: supplier.description,
             website: supplier.website,
             contactEmail: supplier.contactEmail,
@@ -109,50 +104,43 @@ export default function NewSupplierPage() {
         }
     };
 
-    // Handle AI search submission
+    // MODIFIED: Mock AI search function to always return the same result
     const handleAiSearch = async () => {
-        if (!aiDescription) {
-            return;
-        }
+        console.log('Performing AI search...');
 
         setAiSearchLoading(true);
 
-        try {
-            // In the real implementation, this would call the external API endpoint
-            // const response = await fetch('/api/getNewSuppliers', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({
-            //         description: aiDescription,
-            //         criteria: aiCategories
-            //     })
-            // });
-            // const data = await response.json();
-            // setAiResults(data.results);
+        // Simulate API delay
+        setTimeout(() => {
+            // Mock result that will always be returned
+            const mockResult = [{
+                id: "sup-12345",
+                name: "EcoPack Solutions",
+                category: "Packaging",
+                description: "Premium sustainable packaging solutions with rapid delivery across Europe. ISO 9001 and 14001 certified.",
+                location: "Frankfurt, Germany",
+                region: "Europe",
+                rating: 4.8,
+                sustainabilityScore: 92,
+                pricing: "Standard",
+                deliverySpeed: "Fast",
+                isoCertified: true,
+                isLocal: false,
+                aiRecommendation: {
+                    reasons: [
+                        "Matches all 3 of your criteria: sustainable materials, fast delivery, and ISO certification",
+                        "92/100 sustainability score exceeds industry average by 45%",
+                        "European location aligns with your regional requirements",
+                        "Specialized in packaging solutions with proven track record"
+                    ],
+                    considerations: "Premium pricing may be higher than industry average, but offset by reduced carbon footprint and long-term sustainability benefits."
+                }
+            }];
 
-            // For now, simulate API call with mock data and setTimeout
-            setTimeout(() => {
-                // Filter mock suppliers based on criteria as a simulation
-                const filteredResults = mockSuppliers
-                    .filter(s => {
-                        // Very basic filtering logic for demo purposes
-                        if (aiCategories.includes('sustainable') && !s.description.toLowerCase().includes('sustainable')) {
-                            return false;
-                        }
-                        if (aiCategories.includes('premium') && s.currentPricing !== 'Premium') {
-                            return false;
-                        }
-                        return true;
-                    })
-                    .slice(0, 3); // Limit to 3 results for demo
-
-                setAiResults(filteredResults);
-                setAiSearchLoading(false);
-            }, 2000);
-        } catch (error) {
-            console.error('Error performing AI search:', error);
+            console.log('Mocked AI search results:', mockResult);
+            setAiResults(mockResult);
             setAiSearchLoading(false);
-        }
+        }, 1500); // 1.5 second delay to simulate API call
     };
 
     // Handle form input changes
@@ -209,6 +197,11 @@ export default function NewSupplierPage() {
         alert('Supplier added successfully!');
         // In a real app, you would use router.push('/suppliers') to redirect
     };
+
+    // Set the AI tab active when component loads
+    useEffect(() => {
+        setActiveTab('ai');
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -432,6 +425,18 @@ export default function NewSupplierPage() {
                                                 <div>
                                                     <h4 className="text-md font-medium text-gray-900">{supplier.name}</h4>
                                                     <p className="text-sm text-gray-600 mt-1 mb-2">{supplier.description}</p>
+
+                                                    {supplier.aiRecommendation && supplier.aiRecommendation.reasons && (
+                                                        <div className="mb-2 p-2 bg-blue-50 rounded">
+                                                            <p className="text-sm font-medium text-blue-700">Why this supplier is recommended:</p>
+                                                            <ul className="text-sm text-blue-600 list-disc pl-5 mt-1">
+                                                                {supplier.aiRecommendation.reasons.map((reason, idx) => (
+                                                                    <li key={idx}>{reason}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+
                                                     <div className="flex items-center text-sm text-gray-600">
                                                         <span className="flex items-center mr-4">
                                                             <FiFilter className="h-4 w-4 mr-1" />
