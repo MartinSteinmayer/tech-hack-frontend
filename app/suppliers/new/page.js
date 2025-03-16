@@ -17,7 +17,7 @@ import {
     FiAlertCircle,
     FiCpu
 } from 'react-icons/fi';
-import { mockSuppliers } from '@/lib/mockData';
+import { mockSuppliers, updateMockSuppliers } from '@/lib/mockData';
 import { searchSuppliers } from '@/lib/supplierApi';
 
 export default function NewSupplierPage() {
@@ -189,13 +189,74 @@ export default function NewSupplierPage() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Here, you would typically send the data to your backend API
-        // For now, we'll just log it
-        console.log('New supplier data:', formData);
+        // Validate required fields
+        if (!formData.name || !formData.category || !formData.contactEmail || !formData.contactPhone) {
+            alert("Please fill out all required fields.");
+            return;
+        }
 
-        // Show success message and redirect
-        alert('Supplier added successfully!');
-        // In a real app, you would use router.push('/suppliers') to redirect
+        try {
+            // Format the supplier data
+            const supplierData = {
+                // Basic information
+                name: formData.name,
+                description: formData.description,
+                category: formData.category,
+                subcategory: formData.subcategory,
+                location: formData.location,
+                region: formData.region,
+
+                // Contact information
+                website: formData.website,
+                contactEmail: formData.contactEmail,
+                contactPhone: formData.contactPhone,
+
+                // Default values for new suppliers
+                foundedYear: new Date().getFullYear(),
+                employees: '1-50',
+                rating: 4.0,
+                reliabilityScore: 80,
+                qualityScore: 85,
+                deliveryScore: 80,
+                communicationScore: 85,
+                status: 'active',
+                complianceStatus: 'review',
+
+                // Products
+                products: formData.products.filter(p => p.name).map((product, index) => ({
+                    id: 1000 + index,  // Generate product IDs
+                    name: product.name,
+                    category: product.category || formData.category,
+                    leadTime: product.leadTime || '2-3 weeks',
+                    minOrderQty: product.minOrderQty || 1,
+                    unitPrice: product.unitPrice || 0
+                })),
+
+                // Empty arrays for other data
+                certifications: [],
+                performanceHistory: [],
+                riskFactors: [
+                    { category: 'Financial', level: 'low', description: 'New supplier - limited data available' }
+                ],
+                recentOrders: [],
+                negotiationHistory: []
+            };
+
+            // Add to mockSuppliers
+            const newSupplier = updateMockSuppliers(supplierData);
+            console.log('New supplier added:', newSupplier);
+            console.log('Updated suppliers list:', mockSuppliers);
+
+            // Show success message
+            alert('Supplier added successfully!');
+
+            // In a real app, you would redirect here
+            // router.push('/suppliers');
+
+        } catch (error) {
+            console.error('Error adding supplier:', error);
+            alert('Error adding supplier. Please try again.');
+        }
     };
 
     // Set the AI tab active when component loads
