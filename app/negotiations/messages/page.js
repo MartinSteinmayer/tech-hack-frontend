@@ -58,11 +58,18 @@ function MessagesContent() {
     const searchParams = useSearchParams();
     const supplierId = searchParams.get('supplierId');
 
+    // Define API URL - ideally from environment variable
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tech-hack-api.vercel.app/api';
+
     const [supplier, setSupplier] = useState(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [generatedMessage, setGeneratedMessage] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [error, setError] = useState(null);
+    const [emailSent, setEmailSent] = useState(false);
+    const [emailSentDetails, setEmailSentDetails] = useState(null);
+
     const [formData, setFormData] = useState({
         type: 'inquiry',
         supplier: '',
@@ -70,7 +77,7 @@ function MessagesContent() {
         keyPoints: ''
     });
 
-    // Mock supplier data for dropdown (would come from mockData.js)
+    // Mock supplier data for dropdown
     const [suppliers, setSuppliers] = useState([]);
     const [supplierDetails, setSupplierDetails] = useState(null);
 
@@ -78,9 +85,7 @@ function MessagesContent() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-
-                // In a real app, we would use the API client to fetch data
-                // For now, extract data from mockData that was imported elsewhere in the app
+                setError(null);
 
                 // Get supplier data from window object if available
                 const mockSuppliersData = window.mockSuppliers || [];
@@ -142,6 +147,7 @@ function MessagesContent() {
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching data:', error);
+                setError('Failed to load supplier data. Please try again later.');
                 setLoading(false);
             }
         };
@@ -170,7 +176,9 @@ function MessagesContent() {
     };
 
     const handleGenerateMessage = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
 
         if (!formData.supplier) {
             alert('Please select a supplier');
@@ -179,36 +187,105 @@ function MessagesContent() {
 
         try {
             setGenerating(true);
+            setError(null);
 
-            // Call the API to generate a message
-            const response = await axios.post('https://tech-hack-api.vercel.app/api/negotiations/messages', {
+            // Format key points before sending to the API
+            const formattedData = {
                 type: formData.type,
                 supplier: formData.supplier,
                 additionalContext: formData.additionalContext,
                 keyPoints: formData.keyPoints
+            };
+
+            // Call the negotiations messages API endpoint
+            const response = await axios.post(`${API_BASE_URL}/negotiations/messages`, formattedData, {
+                timeout: 20000, // 20 second timeout for AI generation
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
-            setGeneratedMessage(response.data);
+            console.log('API response:', response.data);
+
+            // Check response structure and validate
+            if (response.data && response.data.subject && response.data.body) {
+                setGeneratedMessage(response.data);
+            } else {
+                throw new Error('Invalid response from API');
+            }
+
             setGenerating(false);
         } catch (error) {
             console.error('Error generating message:', error);
 
-            // Fallback to mock response in case the API is down
+            // Set appropriate error message based on error type
+            if (error.response) {
+                // Server returned an error response
+                setError(`Server error: ${error.response.status} - ${error.response.data?.error || 'Unknown error'}`);
+            } else if (error.request) {
+                // No response received (timeout)
+                setError('Server not responding. The AI generation may be taking longer than expected.');
+            } else {
+                // Request setup error
+                setError(`Failed to generate message: ${error.message}`);
+            }
+
+            // Create a fallback message as a last resort
             const mockResponse = {
                 subject: `Re: ${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)} with ${formData.supplier}`,
-                body: `Dear ${formData.supplier},\n\n${formData.type === 'negotiation'
-                        ? 'Thank you for your quote. We would like to discuss the possibility of a volume discount based on our projected annual needs.'
-                        : formData.type === 'followup'
-                            ? 'I\'m following up on our previous conversation regarding pricing. Have you had a chance to review our proposal?'
-                            : 'We are interested in your products and would like to request more information about your pricing and availability for our upcoming projects.'
-                    }\n\nBest regards,\nTacto Team`,
+                body: createFallbackMessageBody(formData),
                 suggested_tone: "Professional and direct",
-                key_points: ["Reference previous communication", "Be specific about needs", "Include timeline expectations"]
+                key_points: [
+                    "Reference previous communication",
+                    "Be specific about needs",
+                    "Include timeline expectations"
+                ]
             };
 
             setGeneratedMessage(mockResponse);
             setGenerating(false);
         }
+    };
+
+    // Helper function to create a fallback message body
+    const createFallbackMessageBody = (data) => {
+        // Base message based on type
+        let baseMessage = '';
+
+        switch (data.type) {
+            case 'negotiation':
+                baseMessage = `Thank you for your quote. We would like to discuss the possibility of a volume discount based on our projected annual needs.`;
+                break;
+            case 'followup':
+                baseMessage = `I'm following up on our previous conversation regarding pricing. Have you had a chance to review our proposal?`;
+                break;
+            default: // 'inquiry'
+                baseMessage = `We are interested in your products and would like to request more information about your pricing and availability for our upcoming projects.`;
+        }
+
+        // Construct full message
+        let fullMessage = `Dear ${data.supplier},\n\n${baseMessage}`;
+
+        // Add additional context if provided
+        if (data.additionalContext && data.additionalContext.trim()) {
+            fullMessage += `\n\n${data.additionalContext.trim()}`;
+        }
+
+        // Add key points if provided
+        if (data.keyPoints && data.keyPoints.trim()) {
+            const points = data.keyPoints.split('\n').filter(line => line.trim());
+            if (points.length > 0) {
+                fullMessage += '\n\nKey points:\n';
+                points.forEach(point => {
+                    fullMessage += `- ${point.trim()}\n`;
+                });
+            }
+        }
+
+        // Add signature
+        fullMessage += '\n\nBest regards,\nTacto Team';
+
+        return fullMessage;
     };
 
     const handleCopy = () => {
@@ -223,12 +300,9 @@ function MessagesContent() {
         }
     };
 
-    const [emailSent, setEmailSent] = useState(false);
-    const [emailSentDetails, setEmailSentDetails] = useState(null);
-
     const handleSendEmail = () => {
         if (generatedMessage && formData.supplier) {
-            // First try to find the supplier in our local state
+            // Find the supplier email
             const selectedSupplier = suppliers.find(s =>
                 s.name.toLowerCase() === formData.supplier.toLowerCase()
             );
@@ -236,13 +310,11 @@ function MessagesContent() {
             let emailAddress;
             let supplierName = formData.supplier;
 
-            // Check if we have the email in our local state
+            // Try to find the email in our data
             if (selectedSupplier && selectedSupplier.contactEmail) {
                 emailAddress = selectedSupplier.contactEmail;
                 supplierName = selectedSupplier.name;
-            }
-            // Next check if we have the supplier details in state
-            else if (supplierDetails) {
+            } else if (supplierDetails) {
                 const fullDetails = supplierDetails.find(s =>
                     s.name.toLowerCase() === formData.supplier.toLowerCase()
                 );
@@ -250,9 +322,7 @@ function MessagesContent() {
                     emailAddress = fullDetails.contactEmail;
                     supplierName = fullDetails.name;
                 }
-            }
-            // Finally, try importing from mockData as a fallback
-            else {
+            } else {
                 try {
                     const { mockSuppliers } = require('@/lib/mockData');
                     const fullSupplierDetails = mockSuppliers.find(s =>
@@ -300,6 +370,11 @@ function MessagesContent() {
         }
     };
 
+    const handleRegenerateMessage = () => {
+        setGeneratedMessage(null);
+        handleGenerateMessage();
+    };
+
     const messageTypeOptions = [
         { value: 'inquiry', label: 'Initial Inquiry' },
         { value: 'negotiation', label: 'Negotiation' },
@@ -338,6 +413,20 @@ function MessagesContent() {
                     </div>
                 )}
             </div>
+
+            {/* Error message display */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-2">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <FiAlertCircle className="h-5 w-5 text-red-500" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-red-700">{error}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Message Generation Form */}
@@ -392,6 +481,13 @@ function MessagesContent() {
                                         </option>
                                     ))}
                                 </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {formData.type === 'inquiry'
+                                        ? 'For first-time communication with a supplier'
+                                        : formData.type === 'negotiation'
+                                            ? 'For discussing prices, terms, or conditions'
+                                            : 'For checking status or continuing a conversation'}
+                                </p>
                             </div>
 
                             {/* Additional Context */}
@@ -511,7 +607,7 @@ function MessagesContent() {
                             {/* Actions */}
                             <div className="flex space-x-3 mt-4">
                                 <button
-                                    onClick={() => setGeneratedMessage(null)}
+                                    onClick={handleRegenerateMessage}
                                     className="btn-secondary flex items-center"
                                 >
                                     <FiRefreshCw className="mr-2" />

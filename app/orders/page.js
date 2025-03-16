@@ -419,14 +419,6 @@ export default function OrdersPage() {
                                                     Edit
                                                 </Link>
                                             )}
-                                            {order.status === 'shipped' && (
-                                                <Link
-                                                    href={`/orders/${order.id}/track`}
-                                                    className="text-purple-600 hover:text-purple-900"
-                                                >
-                                                    Track
-                                                </Link>
-                                            )}
                                         </td>
                                     </tr>
                                 ))}
