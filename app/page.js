@@ -72,7 +72,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="ml-4">
                                     <h3 className="text-md font-medium text-gray-800">Supplier Discovery</h3>
-                                    <p className="text-sm text-gray-500">Find and analyze suppliers</p>
+                                    <p className="text-sm text-gray-500">Find and analyze suppliers with the help of our AI</p>
                                 </div>
                             </div>
                         </Link>
