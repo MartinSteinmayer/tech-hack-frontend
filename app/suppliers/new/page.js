@@ -88,7 +88,7 @@ export default function NewSupplierPage() {
             location: supplier.location,
             region: supplier.region || '',
             description: supplier.description,
-            website: supplier.website,
+            website: supplier.website || 'https://',
             contactEmail: supplier.contactEmail,
             contactPhone: supplier.contactPhone,
             products: supplier.products || [{ name: '', category: '', leadTime: '', minOrderQty: 1, unitPrice: 0 }]
@@ -634,7 +634,7 @@ export default function NewSupplierPage() {
                                     <input
                                         type="url"
                                         name="website"
-                                        value={formData.website}
+                                        value={formData.website || 'https://'}
                                         onChange={handleFormChange}
                                         className="form-input pl-10"
                                     />
@@ -652,7 +652,7 @@ export default function NewSupplierPage() {
                                     <input
                                         type="email"
                                         name="contactEmail"
-                                        value={formData.contactEmail}
+                                        value={formData.contactEmail || ''}
                                         onChange={handleFormChange}
                                         className="form-input pl-10"
                                         required
