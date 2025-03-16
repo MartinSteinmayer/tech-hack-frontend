@@ -16,7 +16,7 @@ import {
     FiClock,
     FiTruck
 } from 'react-icons/fi';
-import { mockSuppliers } from '@/lib/mockData';
+import { mockSuppliers, mockOrders, updateMockOrders } from '@/lib/mockData';
 
 // Main container component that doesn't use useSearchParams
 export default function NewOrderPage() {
@@ -58,6 +58,7 @@ function NewOrderForm() {
     const initialProductId = searchParams.get('productId');
 
     const [loading, setLoading] = useState(true);
+    const [isDraft, setIsDraft] = useState(false); // Add this line
     const [submitting, setSubmitting] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
     const [products, setProducts] = useState([]);
@@ -339,6 +340,7 @@ function NewOrderForm() {
 
     const handleSubmit = async (e, asDraft = false) => {
         e.preventDefault();
+        setIsDraft(asDraft); // Add this line
 
         if (!asDraft && !validateForm()) {
             return;
@@ -347,21 +349,46 @@ function NewOrderForm() {
         try {
             setSubmitting(true);
 
-            const orderData = {
-                ...formData,
-                status: asDraft ? 'draft' : 'processing'
+            // Get supplier name
+            const supplier = suppliers.find(s => s.id.toString() === formData.supplierId.toString());
+            const supplierName = supplier ? supplier.name : 'Unknown Supplier';
+
+            // Create a unique order ID
+            const currentYear = new Date().getFullYear();
+            const orderNumber = mockOrders.length + 1;
+            const orderId = `ORD-${currentYear}-${orderNumber}`;
+
+            // Format items (keeping only necessary fields)
+            const formattedItems = formData.items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                total: item.total
+            }));
+
+            // Create the new order object
+            const newOrder = {
+                id: orderId,
+                supplierId: parseInt(formData.supplierId),
+                supplierName,
+                date: formData.orderDate,
+                deliveryDate: formData.deliveryDate,
+                status: asDraft ? 'draft' : 'processing',
+                items: formattedItems,
+                total: formData.total,
+                paymentTerms: formData.paymentTerms,
+                notes: formData.notes,
+                lastUpdated: new Date().toISOString().slice(0, 10)
             };
 
-            // In a real app, we would call the API
-            // const response = await orderApi.createOrder(orderData);
-            // const orderId = response.data.id;
+            // Add to mockOrders
+            updateMockOrders(newOrder);
+            console.log('New order added:', newOrder);
+            console.log('Updated orders:', mockOrders);
 
-            // For the hackathon, simulate API call
+            // Simulate API call delay
             setTimeout(() => {
                 setSubmitting(false);
-
-                // Mock order ID
-                const orderId = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(Math.random() * 1000);
 
                 // Redirect to order details page
                 router.push(`/orders/${orderId}`);
@@ -387,19 +414,20 @@ function NewOrderForm() {
                         className="btn-secondary flex items-center"
                         disabled={submitting}
                     >
-                        {submitting && asDraft ? (
+                        {submitting && isDraft ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                         ) : (
                             <FiSave className="mr-2" />
                         )}
                         Save as Draft
                     </button>
+
                     <button
                         onClick={(e) => handleSubmit(e, false)}
                         className="btn-primary flex items-center"
                         disabled={submitting}
                     >
-                        {submitting && !asDraft ? (
+                        {submitting && !isDraft ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                         ) : (
                             <FiSend className="mr-2" />
