@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
     FiArrowLeft,
     FiFileText,
@@ -18,7 +18,42 @@ import { mockSuppliers } from '@/lib/mockData';
 import { jsPDF } from 'jspdf';
 import "jspdf-autotable";
 
+// Main page component that doesn't directly use useSearchParams
 export default function DossierGeneratorPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <DossierContent />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <div className="p-2 rounded-full mr-2">
+                        <div className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800">
+                        Generate Negotiation Dossier
+                    </h1>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading...</p>
+            </div>
+        </div>
+    );
+}
+
+// Content component that uses useSearchParams inside a Suspense boundary
+function DossierContent() {
+    // Move useSearchParams inside this component
+    const { useSearchParams } = require('next/navigation');
     const searchParams = useSearchParams();
     const router = useRouter();
     const supplierId = searchParams.get('supplierId');

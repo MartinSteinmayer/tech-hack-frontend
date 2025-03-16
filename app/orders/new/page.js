@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
     FiArrowLeft,
     FiPlus,
@@ -18,9 +18,42 @@ import {
 } from 'react-icons/fi';
 import { mockSuppliers } from '@/lib/mockData';
 
+// Main container component that doesn't use useSearchParams
 export default function NewOrderPage() {
-    const router = useRouter();
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <NewOrderForm />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <div className="p-2 rounded-full mr-2">
+                        <div className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800">Create New Order</h1>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading order form...</p>
+            </div>
+        </div>
+    );
+}
+
+// Form component that uses useSearchParams inside a Suspense boundary
+function NewOrderForm() {
+    // Move useSearchParams inside this component
+    const { useSearchParams } = require('next/navigation');
     const searchParams = useSearchParams();
+    const router = useRouter();
     const initialSupplierId = searchParams.get('supplierId');
     const initialProductId = searchParams.get('productId');
 

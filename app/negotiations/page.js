@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import {
     FiMessageSquare,
     FiTrendingUp,
@@ -17,7 +16,36 @@ import {
 import { negotiationApi, supplierApi } from '@/lib/api';
 import { mockNegotiations, getSupplierById } from '@/lib/mockData';
 
+// Main container component that doesn't use useSearchParams
 export default function NegotiationsPage() {
+    return (
+        <Suspense fallback={<LoadingState />}>
+            <NegotiationsContent />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingState() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-800">
+                    Negotiation Companion
+                </h1>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading negotiations...</p>
+            </div>
+        </div>
+    );
+}
+
+// Content component that safely uses useSearchParams inside Suspense
+function NegotiationsContent() {
+    // Import useSearchParams inside the component
+    const { useSearchParams } = require('next/navigation');
     const searchParams = useSearchParams();
     const supplierId = searchParams.get('supplierId');
 
@@ -28,17 +56,6 @@ export default function NegotiationsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // In a real app, we would use the API client
-                // if (supplierId) {
-                //   const supplierResponse = await supplierApi.getById(supplierId);
-                //   setSupplier(supplierResponse.data);
-                // }
-
-                // const negotiationsResponse = supplierId 
-                //   ? await negotiationApi.getAll({ supplierId }) 
-                //   : await negotiationApi.getAll();
-                // setActiveNegotiations(negotiationsResponse.data);
-
                 // For the hackathon, use mock data
                 setTimeout(() => {
                     if (supplierId) {
