@@ -477,7 +477,7 @@ export default function OrdersPage() {
                 </Link>
 
                 <Link
-                    href="/orders/reports"
+                    href="/report"
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors group"
                 >
                     <div className="flex items-center justify-between mb-4">
