@@ -51,23 +51,23 @@ const Sidebar = () => {
                 <div className="h-16 flex items-center justify-center border-b">
                     {!collapsed && (
                         <Link href="/" className="flex items-center justify-center">
-                            <Image 
-                                src="/tacto.png" 
-                                alt="Tacto Logo" 
-                                width={120} 
-                                height={40} 
-                                priority 
+                            <Image
+                                src="/tacto.png"
+                                alt="Tacto Logo"
+                                width={120}
+                                height={40}
+                                priority
                             />
                         </Link>
                     )}
                     {collapsed && (
                         <Link href="/" className="flex items-center justify-center">
-                            <Image 
-                                src="/tacto.png" 
-                                alt="Tacto Logo" 
-                                width={32} 
-                                height={32} 
-                                priority 
+                            <Image
+                                src="/tacto.png"
+                                alt="Tacto Logo"
+                                width={32}
+                                height={32}
+                                priority
                             />
                         </Link>
                     )}
@@ -113,7 +113,7 @@ const Sidebar = () => {
             {/* Backdrop for mobile */}
             {!collapsed && (
                 <div
-                    className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+                    className="lg:hidden fixed inset-0 bg-opacity-50 z-30"
                     onClick={toggleSidebar}
                 />
             )}
