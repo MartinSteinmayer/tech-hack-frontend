@@ -4,6 +4,8 @@ Tacto is an intelligent supply chain management platform that leverages AI to st
 
 ## Project Overview
 
+### IMPORTANT: WE DEVELOPED AN API AVAILABLE AT https://github.com/MartinSteinmayer/tech-hack
+
 This Next.js application provides a comprehensive suite of tools for procurement and supply chain professionals:
 
 - **Supplier Discovery**: Find and evaluate potential suppliers with AI-powered recommendations.
