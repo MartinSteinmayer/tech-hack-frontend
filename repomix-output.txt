@@ -52,6 +52,8 @@ app/
     items/
       [id]/
         page.js
+    verify/
+      page.js
     page.js
   negotiations/
     dossier/
@@ -96,10 +98,12 @@ lib/
   api.js
   compliance.csv
   exportDataToCsv.js
+  mock_data.json
   mockData.js
   negotiations.csv
   orders.csv
   suppliers.csv
+  test.py
 public/
   file.svg
   globe.svg
@@ -1241,16 +1245,6 @@ export default function ComplianceItemDetailsPage() {
 
                                 <div className="space-y-3">
                                     <Link
-                                        href={`/compliance/verify?documentId=${complianceItem.id}`}
-                                        className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
-                                    >
-                                        <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 mr-3">
-                                            <FiCheckCircle className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-sm font-medium">Verify Compliance</span>
-                                    </Link>
-
-                                    <Link
                                         href={`/compliance/analyze`}
                                         className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
                                     >
@@ -1343,6 +1337,640 @@ export default function ComplianceItemDetailsPage() {
         </div>
     );
 }
+
+================
+File: app/compliance/verify/page.js
+================
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
+import {
+    FiArrowLeft,
+    FiCheck,
+    FiX,
+    FiAlertCircle,
+    FiClock,
+    FiCheckCircle,
+    FiUpload,
+    FiFileText,
+    FiShield,
+    FiDownload,
+    FiExternalLink,
+    FiRefreshCw
+} from 'react-icons/fi';
+import { complianceApi } from '@/lib/api';
+import { mockComplianceItems, getSupplierById } from '@/lib/mockData';
+
+// Main component that doesn't directly use useSearchParams
+export default function VerifyCompliancePage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <VerifyContent />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <div className="p-2 rounded-full mr-2">
+                        <div className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800">Supplier Compliance Verification</h1>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading compliance data...</p>
+            </div>
+        </div>
+    );
+}
+
+// Content component that safely uses useSearchParams inside a Suspense boundary
+function VerifyContent() {
+    // Import useSearchParams inside this component
+    const { useSearchParams } = require('next/navigation');
+    const searchParams = useSearchParams();
+    const supplierId = searchParams.get('supplierId');
+    const documentId = searchParams.get('documentId');
+
+    const [supplier, setSupplier] = useState(null);
+    const [complianceItems, setComplianceItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [verificationStatus, setVerificationStatus] = useState({
+        inProgress: false,
+        completed: false,
+        success: false
+    });
+    const [verificationReport, setVerificationReport] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // For a real app, we would call the API
+                // const supplierResponse = await supplierApi.getById(supplierId);
+                // const complianceResponse = await complianceApi.getItemsBySupplier(supplierId);
+
+                // For the hackathon, use mock data
+                setTimeout(() => {
+                    if (supplierId) {
+                        // Get supplier details
+                        const supplierData = getSupplierById(parseInt(supplierId));
+                        setSupplier(supplierData);
+
+                        // Filter compliance items for this supplier
+                        const items = mockComplianceItems.filter(
+                            item => item.supplierId === parseInt(supplierId)
+                        );
+                        setComplianceItems(items);
+
+                        // If a specific document ID was provided, select that item
+                        if (documentId) {
+                            const item = mockComplianceItems.find(
+                                item => item.id === parseInt(documentId)
+                            );
+                            if (item) {
+                                setSelectedItem(item);
+                            }
+                        }
+                    }
+
+                    setLoading(false);
+                }, 700);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [supplierId, documentId]);
+
+    // Function to determine compliance status based on items
+    const getOverallComplianceStatus = () => {
+        if (!complianceItems || complianceItems.length === 0) return 'unknown';
+
+        if (complianceItems.some(item => item.status === 'non-compliant')) {
+            return 'non-compliant';
+        }
+
+        if (complianceItems.some(item => item.status === 'review')) {
+            return 'review';
+        }
+
+        return 'compliant';
+    };
+
+    // Function to get status badge styling
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'compliant':
+                return 'bg-green-100 text-green-800';
+            case 'review':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'non-compliant':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    // Function to get status icon
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'compliant':
+                return <FiCheckCircle className="h-5 w-5 text-green-500" />;
+            case 'review':
+                return <FiClock className="h-5 w-5 text-yellow-500" />;
+            case 'non-compliant':
+                return <FiAlertCircle className="h-5 w-5 text-red-500" />;
+            default:
+                return <FiFileText className="h-5 w-5 text-gray-500" />;
+        }
+    };
+
+    // Function to handle item selection
+    const handleSelectItem = (item) => {
+        setSelectedItem(item);
+        // Reset verification status when a new item is selected
+        setVerificationStatus({
+            inProgress: false,
+            completed: false,
+            success: false
+        });
+        setVerificationReport(null);
+    };
+
+    // Function to format date
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString();
+    };
+
+    // Function to handle verification
+    const handleVerify = () => {
+        if (!selectedItem) return;
+
+        setVerificationStatus({
+            inProgress: true,
+            completed: false,
+            success: false
+        });
+
+        // Mock verification process with setTimeout
+        setTimeout(() => {
+            // For the hackathon, we'll simulate a successful verification
+            const isSuccess = Math.random() > 0.3; // 70% success rate
+
+            // Generate mock verification report
+            const report = {
+                date: new Date().toISOString(),
+                documentType: selectedItem.documentType,
+                supplierName: selectedItem.supplierName,
+                verificationMethod: 'Automated document verification',
+                result: isSuccess ? 'VERIFIED' : 'VERIFICATION FAILED',
+                details: isSuccess
+                    ? 'Document appears to be authentic and meets all required standards.'
+                    : 'Verification failed due to missing or inconsistent information.',
+                nextSteps: isSuccess
+                    ? 'Document is approved for compliance purposes. Next review scheduled for ' + formatDate(new Date(Date.now() + 180 * 24 * 60 * 60 * 1000))
+                    : 'Contact supplier to request corrected or updated documentation.',
+                warnings: isSuccess && Math.random() > 0.5
+                    ? ['Document will expire in less than 90 days. Consider requesting renewal.']
+                    : []
+            };
+
+            setVerificationReport(report);
+            setVerificationStatus({
+                inProgress: false,
+                completed: true,
+                success: isSuccess
+            });
+
+            // Update the status of the selected item (in a real app, this would be saved to the backend)
+            if (isSuccess) {
+                const updatedItems = complianceItems.map(item =>
+                    item.id === selectedItem.id
+                        ? { ...item, status: 'compliant', lastChecked: new Date().toISOString() }
+                        : item
+                );
+                setComplianceItems(updatedItems);
+                setSelectedItem({ ...selectedItem, status: 'compliant', lastChecked: new Date().toISOString() });
+            }
+        }, 2000);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading compliance data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // If no supplier was found
+    if (!supplier && supplierId) {
+        return (
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                        <Link href="/compliance" className="p-2 rounded-full hover:bg-gray-100 mr-2">
+                            <FiArrowLeft className="h-5 w-5 text-gray-600" />
+                        </Link>
+                        <h1 className="text-2xl font-bold text-gray-800">Supplier Compliance Verification</h1>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                    <FiAlertCircle className="mx-auto h-12 w-12 text-red-500" />
+                    <h2 className="mt-2 text-lg font-medium text-gray-900">Supplier Not Found</h2>
+                    <p className="mt-1 text-gray-500">
+                        The supplier you're looking for does not exist or has been removed.
+                    </p>
+                    <div className="mt-4">
+                        <Link href="/suppliers" className="btn-primary inline-flex items-center">
+                            Browse Suppliers
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // If no supplier was selected
+    if (!supplierId) {
+        return (
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                        <Link href="/compliance" className="p-2 rounded-full hover:bg-gray-100 mr-2">
+                            <FiArrowLeft className="h-5 w-5 text-gray-600" />
+                        </Link>
+                        <h1 className="text-2xl font-bold text-gray-800">Supplier Compliance Verification</h1>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h2 className="text-lg font-medium text-gray-800 mb-4">Select a Supplier</h2>
+                    <p className="text-gray-600 mb-4">
+                        Please select a supplier to verify their compliance status with regulations and company policies.
+                    </p>
+                    <Link href="/suppliers" className="btn-primary inline-flex items-center">
+                        Browse Suppliers
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const overallStatus = getOverallComplianceStatus();
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <Link href="/compliance" className="p-2 rounded-full hover:bg-gray-100 mr-2">
+                        <FiArrowLeft className="h-5 w-5 text-gray-600" />
+                    </Link>
+                    <h1 className="text-2xl font-bold text-gray-800">Supplier Compliance Verification</h1>
+                </div>
+                {verificationReport && (
+                    <button className="btn-secondary flex items-center">
+                        <FiDownload className="mr-2" />
+                        Export Report
+                    </button>
+                )}
+            </div>
+
+            {/* Supplier Overview Card */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+                    <div>
+                        <div className="flex items-center mb-2">
+                            <h2 className="text-lg font-semibold text-gray-800 mr-3">{supplier.name}</h2>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(overallStatus)}`}>
+                                {getStatusIcon(overallStatus)}
+                                <span className="ml-1">
+                                    {overallStatus === 'compliant' ? 'Compliant' :
+                                        overallStatus === 'review' ? 'Under Review' :
+                                            'Non-Compliant'}
+                                </span>
+                            </span>
+                        </div>
+                        <p className="text-gray-600 mb-2">{supplier.category} • {supplier.subcategory || 'General'}</p>
+                        <div className="flex items-center text-sm text-gray-600">
+                            <Link href={`/suppliers/${supplier.id}`} className="text-blue-600 hover:underline flex items-center">
+                                <FiExternalLink className="mr-1 h-4 w-4" />
+                                View Supplier Profile
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-6">
+                        <div className="flex items-center">
+                            <div className="p-2 bg-blue-100 rounded-full mr-3">
+                                <FiFileText className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Total Documents</p>
+                                <p className="text-lg font-semibold">{complianceItems.length}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center">
+                            <div className="p-2 bg-green-100 rounded-full mr-3">
+                                <FiCheckCircle className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Compliant</p>
+                                <p className="text-lg font-semibold">
+                                    {complianceItems.filter(item => item.status === 'compliant').length}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center">
+                            <div className="p-2 bg-red-100 rounded-full mr-3">
+                                <FiAlertCircle className="h-5 w-5 text-red-600" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Non-Compliant</p>
+                                <p className="text-lg font-semibold">
+                                    {complianceItems.filter(item => item.status === 'non-compliant').length}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-start">
+                        <FiShield className="h-5 w-5 text-blue-500 mt-0.5 mr-3" />
+                        <div>
+                            <h4 className="font-medium text-gray-800 mb-1">Compliance Assessment</h4>
+                            <p className="text-sm text-gray-600">
+                                {overallStatus === 'compliant'
+                                    ? 'This supplier meets all compliance requirements. Regular verification is recommended to maintain compliance status.'
+                                    : overallStatus === 'review'
+                                        ? 'This supplier has items that require review. Verify each document and follow up with the supplier as needed.'
+                                        : 'This supplier has non-compliant items that require immediate attention. Contact the supplier to request updated documentation.'
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Compliance Items and Verification Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Compliance Items List */}
+                <div className="lg:col-span-1 bg-white rounded-lg shadow-md">
+                    <div className="p-4 border-b border-gray-200">
+                        <h2 className="text-md font-medium text-gray-800">Compliance Documents</h2>
+                    </div>
+
+                    <div className="p-2">
+                        {complianceItems.length === 0 ? (
+                            <div className="text-center p-6">
+                                <FiFileText className="mx-auto h-8 w-8 text-gray-400" />
+                                <p className="mt-2 text-sm text-gray-500">No compliance documents found</p>
+                                <Link href="/compliance/analyze" className="mt-3 inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+                                    <FiUpload className="mr-1 h-4 w-4" />
+                                    Upload Documents
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {complianceItems.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className={`p-3 rounded-lg cursor-pointer ${selectedItem && selectedItem.id === item.id ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-gray-200'}`}
+                                        onClick={() => handleSelectItem(item)}
+                                    >
+                                        <div className="flex items-start">
+                                            {getStatusIcon(item.status)}
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-gray-800">{item.documentType}</p>
+                                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                                    <span className="mr-2">Expires: {formatDate(item.expiryDate || 'N/A')}</span>
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(item.status)}`}>
+                                                        {item.status === 'compliant' ? 'Compliant' :
+                                                            item.status === 'review' ? 'Review' :
+                                                                'Non-Compliant'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Verification Area */}
+                <div className="lg:col-span-2 bg-white rounded-lg shadow-md">
+                    {!selectedItem ? (
+                        <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                            <FiFileText className="h-12 w-12 text-gray-300 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-800 mb-2">Select a Document to Verify</h3>
+                            <p className="text-gray-500 max-w-md">
+                                Choose a compliance document from the list to verify its authenticity and compliance status.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="p-6">
+                            <h2 className="text-lg font-medium text-gray-800 mb-4">Document Verification</h2>
+
+                            <div className="border rounded-lg p-4 mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-md font-medium text-gray-800">{selectedItem.documentType}</h3>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(selectedItem.status)}`}>
+                                        {selectedItem.status === 'compliant' ? 'Compliant' :
+                                            selectedItem.status === 'review' ? 'Under Review' :
+                                                'Non-Compliant'}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-sm text-gray-500">Category</p>
+                                        <p className="font-medium">{selectedItem.category}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Expiry Date</p>
+                                        <p className="font-medium">{formatDate(selectedItem.expiryDate || 'N/A')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Last Checked</p>
+                                        <p className="font-medium">{formatDate(selectedItem.lastChecked)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Document ID</p>
+                                        <p className="font-medium">DOC-{selectedItem.id.toString().padStart(4, '0')}</p>
+                                    </div>
+                                </div>
+
+                                {selectedItem.notes && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <p className="text-sm text-gray-500">Notes</p>
+                                        <p className="text-sm">{selectedItem.notes}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Verification Actions */}
+                            {!verificationStatus.completed ? (
+                                <div className="flex flex-col items-center p-6 bg-gray-50 rounded-lg">
+                                    <FiShield className="h-10 w-10 text-blue-500 mb-3" />
+                                    <h3 className="text-lg font-medium text-gray-800 mb-1">Verify Compliance Status</h3>
+                                    <p className="text-sm text-gray-600 mb-4 text-center max-w-md">
+                                        Verify this document to confirm its authenticity, validity, and compliance with regulations and company policies.
+                                    </p>
+                                    <button
+                                        onClick={handleVerify}
+                                        disabled={verificationStatus.inProgress}
+                                        className="btn-primary flex items-center"
+                                    >
+                                        {verificationStatus.inProgress ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                                Verifying...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FiCheck className="mr-2" />
+                                                Verify Document
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className={`p-6 rounded-lg ${verificationStatus.success ? 'bg-green-50' : 'bg-red-50'}`}>
+                                    <div className="flex items-center mb-4">
+                                        {verificationStatus.success ? (
+                                            <div className="p-2 bg-green-100 rounded-full mr-3">
+                                                <FiCheckCircle className="h-6 w-6 text-green-600" />
+                                            </div>
+                                        ) : (
+                                            <div className="p-2 bg-red-100 rounded-full mr-3">
+                                                <FiX className="h-6 w-6 text-red-600" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h3 className="text-lg font-medium text-gray-800">
+                                                {verificationStatus.success ? 'Verification Successful' : 'Verification Failed'}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {verificationStatus.success
+                                                    ? 'This document has been verified and marked as compliant.'
+                                                    : 'This document could not be verified. See details below.'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {verificationReport && (
+                                        <div className="mt-4 space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-sm text-gray-500">Verification Date</p>
+                                                    <p className="font-medium">{formatDate(verificationReport.date)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-gray-500">Method</p>
+                                                    <p className="font-medium">{verificationReport.verificationMethod}</p>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-sm text-gray-500">Details</p>
+                                                <p className="text-sm">{verificationReport.details}</p>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-sm text-gray-500">Next Steps</p>
+                                                <p className="text-sm">{verificationReport.nextSteps}</p>
+                                            </div>
+
+                                            {verificationReport.warnings && verificationReport.warnings.length > 0 && (
+                                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                                    <div className="flex items-center">
+                                                        <FiAlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
+                                                        <p className="text-sm font-medium text-yellow-800">Warnings</p>
+                                                    </div>
+                                                    <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside">
+                                                        {verificationReport.warnings.map((warning, index) => (
+                                                            <li key={index}>{warning}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-end pt-4">
+                                                <button
+                                                    onClick={() => handleSelectItem(selectedItem)}
+                                                    className="btn-secondary flex items-center mr-3"
+                                                >
+                                                    <FiRefreshCw className="mr-2" />
+                                                    Verify Again
+                                                </button>
+                                                <button className="btn-primary flex items-center">
+                                                    <FiDownload className="mr-2" />
+                                                    Download Report
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Missing icon components
+const FiTrendingUp = ({ className }) => (
+    <svg
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+        />
+    </svg>
+);
+
+const FiMessageSquare = ({ className }) => (
+    <svg
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        />
+    </svg>
+);
 
 ================
 File: app/compliance/page.js
@@ -1703,12 +2331,6 @@ export default function CompliancePage() {
                                             >
                                                 View
                                             </Link>
-                                            <Link
-                                                href={`/compliance/verify?documentId=${item.id}`}
-                                                className="text-green-600 hover:text-green-900"
-                                            >
-                                                Verify
-                                            </Link>
                                         </td>
                                     </tr>
                                 ))}
@@ -1840,9 +2462,9 @@ File: app/negotiations/dossier/page.js
 ================
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
     FiArrowLeft,
     FiFileText,
@@ -1858,7 +2480,42 @@ import { mockSuppliers } from '@/lib/mockData';
 import { jsPDF } from 'jspdf';
 import "jspdf-autotable";
 
+// Main page component that doesn't directly use useSearchParams
 export default function DossierGeneratorPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <DossierContent />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <div className="p-2 rounded-full mr-2">
+                        <div className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800">
+                        Generate Negotiation Dossier
+                    </h1>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading...</p>
+            </div>
+        </div>
+    );
+}
+
+// Content component that uses useSearchParams inside a Suspense boundary
+function DossierContent() {
+    // Move useSearchParams inside this component
+    const { useSearchParams } = require('next/navigation');
     const searchParams = useSearchParams();
     const router = useRouter();
     const supplierId = searchParams.get('supplierId');
@@ -2610,9 +3267,8 @@ File: app/negotiations/page.js
 ================
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import {
     FiMessageSquare,
     FiTrendingUp,
@@ -2627,7 +3283,36 @@ import {
 import { negotiationApi, supplierApi } from '@/lib/api';
 import { mockNegotiations, getSupplierById } from '@/lib/mockData';
 
+// Main container component that doesn't use useSearchParams
 export default function NegotiationsPage() {
+    return (
+        <Suspense fallback={<LoadingState />}>
+            <NegotiationsContent />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingState() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-800">
+                    Negotiation Companion
+                </h1>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading negotiations...</p>
+            </div>
+        </div>
+    );
+}
+
+// Content component that safely uses useSearchParams inside Suspense
+function NegotiationsContent() {
+    // Import useSearchParams inside the component
+    const { useSearchParams } = require('next/navigation');
     const searchParams = useSearchParams();
     const supplierId = searchParams.get('supplierId');
 
@@ -2638,17 +3323,6 @@ export default function NegotiationsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // In a real app, we would use the API client
-                // if (supplierId) {
-                //   const supplierResponse = await supplierApi.getById(supplierId);
-                //   setSupplier(supplierResponse.data);
-                // }
-
-                // const negotiationsResponse = supplierId 
-                //   ? await negotiationApi.getAll({ supplierId }) 
-                //   : await negotiationApi.getAll();
-                // setActiveNegotiations(negotiationsResponse.data);
-
                 // For the hackathon, use mock data
                 setTimeout(() => {
                     if (supplierId) {
@@ -3552,9 +4226,9 @@ File: app/orders/new/page.js
 ================
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
     FiArrowLeft,
     FiPlus,
@@ -3570,9 +4244,42 @@ import {
 } from 'react-icons/fi';
 import { mockSuppliers } from '@/lib/mockData';
 
+// Main container component that doesn't use useSearchParams
 export default function NewOrderPage() {
-    const router = useRouter();
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <NewOrderForm />
+        </Suspense>
+    );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                    <div className="p-2 rounded-full mr-2">
+                        <div className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800">Create New Order</h1>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading order form...</p>
+            </div>
+        </div>
+    );
+}
+
+// Form component that uses useSearchParams inside a Suspense boundary
+function NewOrderForm() {
+    // Move useSearchParams inside this component
+    const { useSearchParams } = require('next/navigation');
     const searchParams = useSearchParams();
+    const router = useRouter();
     const initialSupplierId = searchParams.get('supplierId');
     const initialProductId = searchParams.get('productId');
 
@@ -4776,7 +5483,7 @@ export default function OrdersPage() {
                 </Link>
 
                 <Link
-                    href="/orders/reports"
+                    href="/report"
                     className="bg-white rounded-lg shadow-md p-6 hover:bg-blue-50 transition-colors group"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -4801,12 +5508,9 @@ export default function OrdersPage() {
 ================
 File: app/report/page.js
 ================
-/**
 "use client";
 import { useState, useMemo } from 'react';
-// Import the chart components from react-chartjs-2
 import { Pie, Bar, Line, Scatter } from 'react-chartjs-2';
-// Import chart.js/auto to automatically register all chart components
 import 'chart.js/auto';
 
 import { mockSuppliers, mockOrders } from '../../lib/mockData';
@@ -4841,234 +5545,36 @@ export default function Report() {
 
   // ------------------------------------------
   // 2) AVERAGE ORDER VALUE (Bar Chart)
+  //    (Include suppliers with no orders => 0)
   // ------------------------------------------
   const supplierOrderData = useMemo(() => {
     const data = {};
-    mockOrders.forEach((order) => {
-      const supplierId = order.supplierId;
-      if (data[supplierId]) {
-        data[supplierId].total += order.total;
-        data[supplierId].count++;
-      } else {
-        data[supplierId] = { total: order.total, count: 1 };
-      }
-    });
-    return data;
-  }, []);
 
-  const supplierLabels = Object.keys(supplierOrderData).map((id) => {
-    const supplier = mockSuppliers.find((s) => s.id === parseInt(id));
-    return supplier ? supplier.name : `Supplier ${id}`;
-  });
-
-  const avgOrderValues = Object.values(supplierOrderData).map(
-    (data) => data.total / data.count
-  );
-
-  const barData = {
-    labels: supplierLabels,
-    datasets: [
-      {
-        label: 'Average Order Value',
-        data: avgOrderValues,
-        backgroundColor: '#42a5f5',
-      },
-    ],
-  };
-
-  // ------------------------------------------
-  // 3) SUPPLIER PERFORMANCE OVER TIME (Line Chart)
-  //    - Dropdown to select which supplier to show
-  // ------------------------------------------
-  const [selectedSupplierId, setSelectedSupplierId] = useState(mockSuppliers[0].id);
-
-  // Find the selected supplier object
-  const selectedSupplier = useMemo(
-    () => mockSuppliers.find((s) => s.id === selectedSupplierId),
-    [selectedSupplierId]
-  );
-
-  // Build line chart data based on the selected supplier's performance history
-  const lineData = useMemo(() => {
-    if (!selectedSupplier) return { labels: [], datasets: [] };
-
-    return {
-      labels: selectedSupplier.performanceHistory.map((item) => item.month),
-      datasets: [
-        {
-          label: 'On-Time Delivery (%)',
-          data: selectedSupplier.performanceHistory.map((item) => item.onTimeDelivery),
-          borderColor: '#66bb6a',
-          fill: false,
-        },
-        {
-          label: 'Quality Compliance (%)',
-          data: selectedSupplier.performanceHistory.map((item) => item.qualityCompliance),
-          borderColor: '#42a5f5',
-          fill: false,
-        },
-      ],
-    };
-  }, [selectedSupplier]);
-
-  // Handler for dropdown changes
-  const handleSupplierChange = (e) => {
-    setSelectedSupplierId(Number(e.target.value));
-  };
-
-  // ------------------------------------------
-  // 4) PROFIT MARGIN VS. RELIABILITY (Scatter Chart)
-  // ------------------------------------------
-  const scatterData = {
-    datasets: [
-      {
-        label: 'Profit Margin vs. Reliability',
-        data: mockSuppliers.map((supplier) => ({
-          x: supplier.reliabilityScore,
-          y: supplier.profitMargin,
-        })),
-        backgroundColor: '#ff7043',
-      },
-    ],
-  };
-
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Interactive Procurement Report</h1>
-
-        //Chart 1: Risk Distribution
-        <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Risk Distribution</h2>
-        <p className=" text-gray-600">
-            This pie chart shows the overall distribution of supplier risks (low, medium, high).
-        </p>
-        <div style={{ maxWidth: '300px' }}>
-            <Pie
-            data={pieData}
-            options={{ maintainAspectRatio: false }}
-            width={300}
-            height={300}
-            />
-        </div>
-    </div>
-
-
-      //Chart 2: Average Order Value
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Average Order Value per Supplier</h2>
-        <p className="mb-2 text-gray-600">
-          The bar chart illustrates the average order value computed from recent orders for each supplier.
-        </p>
-        <div className="w-full">
-          <Bar data={barData} options={{ maintainAspectRatio: false }} height={400} />
-        </div>
-      </div>
-
-      // Chart 3: Supplier Performance Over Time 
-      <div className="mb-8">
-        // Dropdown to select supplier
-        <div className="flex items-center mb-4">
-          <h2 className="text-xl font-semibold mr-4">Supplier Performance Over Time</h2>
-          <select
-            className="border border-gray-300 rounded px-2 py-1"
-            value={selectedSupplierId}
-            onChange={handleSupplierChange}
-          >
-            {mockSuppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <p className="mb-2 text-gray-600">
-          The line chart shows trends in on-time delivery and quality compliance for{' '}
-          <strong>{selectedSupplier?.name}</strong> over recent months.
-        </p>
-        <div className="w-full">
-          <Line data={lineData} options={{ maintainAspectRatio: false }} height={400} />
-        </div>
-      </div>
-
-       Chart 4: Profit Margin vs. Reliability Score 
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Profit Margin vs. Reliability Score</h2>
-        <p className="mb-2 text-gray-600">
-          This scatter chart compares each supplier’s reliability score against its profit margin.
-        </p>
-        <div className="w-full">
-          <Scatter data={scatterData} options={{ maintainAspectRatio: false }} height={400} />
-        </div>
-      </div>
-    </div>
-  );
-}
-*/
-
-
-"use client";
-import { useState, useMemo } from 'react';
-// Import the chart components from react-chartjs-2
-import { Pie, Bar, Line, Scatter } from 'react-chartjs-2';
-// Import chart.js/auto to automatically register all chart components
-import 'chart.js/auto';
-
-import { mockSuppliers, mockOrders } from '../../lib/mockData';
-
-export default function Report() {
-  // ------------------------------------------
-  // 1) RISK DISTRIBUTION (Pie Chart)
-  // ------------------------------------------
-  const riskCounts = useMemo(() => {
-    const counts = { low: 0, medium: 0, high: 0 };
+    // Initialize each supplier with zero totals
     mockSuppliers.forEach((supplier) => {
-      supplier.riskFactors.forEach((risk) => {
-        if (counts[risk.level] !== undefined) {
-          counts[risk.level] += 1;
-        } else {
-          counts[risk.level] = 1;
-        }
-      });
+      data[supplier.id] = { total: 0, count: 0 };
     });
-    return counts;
-  }, []);
 
-  const pieData = {
-    labels: Object.keys(riskCounts),
-    datasets: [
-      {
-        data: Object.values(riskCounts),
-        backgroundColor: ['#4caf50', '#ff9800', '#f44336'],
-      },
-    ],
-  };
-
-  // ------------------------------------------
-  // 2) AVERAGE ORDER VALUE (Bar Chart)
-  // ------------------------------------------
-  const supplierOrderData = useMemo(() => {
-    const data = {};
+    // Aggregate actual order totals
     mockOrders.forEach((order) => {
       const supplierId = order.supplierId;
       if (data[supplierId]) {
         data[supplierId].total += order.total;
         data[supplierId].count++;
-      } else {
-        data[supplierId] = { total: order.total, count: 1 };
       }
     });
+
     return data;
   }, []);
 
-  const supplierLabels = Object.keys(supplierOrderData).map((id) => {
-    const supplier = mockSuppliers.find((s) => s.id === parseInt(id));
-    return supplier ? supplier.name : `Supplier ${id}`;
+  // Build arrays for labels and data
+  const supplierLabels = mockSuppliers.map((s) => s.name);
+  const avgOrderValues = mockSuppliers.map((s) => {
+    const { total, count } = supplierOrderData[s.id];
+    return count === 0 ? 0 : total / count;
   });
 
-  const avgOrderValues = Object.values(supplierOrderData).map(
-    (data) => data.total / data.count
-  );
-
+  // Bar chart config
   const barData = {
     labels: supplierLabels,
     datasets: [
@@ -5076,8 +5582,25 @@ export default function Report() {
         label: 'Average Order Value',
         data: avgOrderValues,
         backgroundColor: '#42a5f5',
+        // barThickness: 30 // optionally fix bar width
       },
     ],
+  };
+
+  const barOptions = {
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        ticks: {
+          // Rotate x-axis labels 45° so they don't overlap
+          maxRotation: 45,
+          minRotation: 45,
+        },
+      },
+      y: {
+        beginAtZero: true,
+      },
+    },
   };
 
   // ------------------------------------------
@@ -5118,10 +5641,7 @@ export default function Report() {
 
   // ------------------------------------------
   // 4) RISK MATRIX (Scatter Chart)
-  //    - Replaces the old Profit vs. Reliability scatter
   // ------------------------------------------
-  // Step A: Map riskFactors to numeric levels
-  // ---- Risk Matrix Logic ----
   function computeRiskValue(level) {
     switch (level) {
       case 'low':
@@ -5178,7 +5698,7 @@ export default function Report() {
           text: 'Risk Impact (Annual Revenue in 100k)',
         },
         min: 0,
-        max: 10, // Adjust if you have bigger annualRevenue
+        max: 10,
       },
     },
     plugins: {
@@ -5192,10 +5712,8 @@ export default function Report() {
         },
       },
     },
-    // Maintain or remove aspect ratio as needed
     maintainAspectRatio: false,
   };
-
 
   // ------------------------------------------
   // RENDER
@@ -5204,30 +5722,30 @@ export default function Report() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Interactive Procurement Report</h1>
 
-        {/* Chart 1: Risk Distribution */}
-        <div className="mb-8">
+      {/* Chart 1: Risk Distribution */}
+      <div className="mb-8">
         <h2 className="text-xl font-semibold mb-2">Risk Distribution</h2>
-        <p className=" text-gray-600">
-            This pie chart shows the overall distribution of supplier risks (low, medium, high).
+        <p className="text-gray-600">
+          This pie chart shows the overall distribution of supplier risks (low, medium, high).
         </p>
         <div style={{ maxWidth: '300px' }}>
-            <Pie
+          <Pie
             data={pieData}
             options={{ maintainAspectRatio: false }}
             width={300}
             height={300}
-            />
+          />
         </div>
-    </div>
+      </div>
 
       {/* Chart 2: Average Order Value */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-2">Average Order Value per Supplier</h2>
         <p className="mb-2 text-gray-600">
-          The bar chart illustrates the average order value computed from recent orders for each supplier.
+          The bar chart illustrates the average order value computed from recent orders for each supplier (0 if none).
         </p>
-        <div className="w-full">
-          <Bar data={barData} options={{ maintainAspectRatio: false }} height={400} />
+        <div className="w-full" style={{ height: 400 }}>
+          <Bar data={barData} options={barOptions} />
         </div>
       </div>
 
@@ -5251,8 +5769,8 @@ export default function Report() {
           The line chart shows trends in on-time delivery and quality compliance for{' '}
           <strong>{selectedSupplier?.name}</strong> over recent months.
         </p>
-        <div className="w-full">
-          <Line data={lineData} options={{ maintainAspectRatio: false }} height={400} />
+        <div className="w-full" style={{ height: 400 }}>
+          <Line data={lineData} options={{ maintainAspectRatio: false }} />
         </div>
       </div>
 
@@ -5263,12 +5781,8 @@ export default function Report() {
           This scatter chart places each supplier according to their <em>risk probability</em> (x-axis)
           and <em>risk impact</em> (y-axis).
         </p>
-        {/* Fixed-size container for smaller chart */}
         <div style={{ width: '400px', height: '300px' }}>
-          <Scatter
-            data={riskMatrixScatterData}
-            options={riskMatrixOptions}
-          />
+          <Scatter data={riskMatrixScatterData} options={riskMatrixOptions} />
         </div>
       </div>
     </div>
@@ -7623,14 +8137,6 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        {/* Settings button */}
-                        <button
-                            className="ml-3 p-1 rounded-full text-gray-500 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            <span className="sr-only">View settings</span>
-                            <FiSettings className="h-6 w-6" />
-                        </button>
-
                         {/* Profile dropdown */}
                         <div className="relative ml-3">
                             <div>
@@ -7654,13 +8160,6 @@ const Navbar = () => {
                                             role="menuitem"
                                         >
                                             Your Profile
-                                        </a>
-                                        <a
-                                            href="#"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                            role="menuitem"
-                                        >
-                                            Settings
                                         </a>
                                         <a
                                             href="#"
@@ -8603,6 +9102,1345 @@ exportToCSV(mockNegotiations, 'negotiations.csv');
 exportToCSV(mockComplianceItems, 'compliance.csv');
 
 ================
+File: lib/mock_data.json
+================
+{
+  "suppliers": [
+    {
+      "id": 1,
+      "name": "ElectroTech Industries",
+      "logo": "/images/supplier1.png",
+      "description": "ElectroTech Industries is a leading supplier of electronic components and assemblies for various industries.",
+      "category": "Electronics",
+      "subcategory": "Electronic Components",
+      "location": "Shanghai, China",
+      "region": "Asia",
+      "foundedYear": 2005,
+      "employees": "1000-5000",
+      "website": "https://electrotech-industries.example.com",
+      "contactEmail": "info@electrotech-industries.example.com",
+      "contactPhone": "+86 21 5555 1234",
+      "rating": 4.8,
+      "reliabilityScore": 92,
+      "qualityScore": 95,
+      "deliveryScore": 88,
+      "communicationScore": 90,
+      "status": "active",
+      "complianceStatus": "compliant",
+      "lastOrder": "2023-09-15",
+      "averageDiscount": 7.5,
+      "currentPricing": "Premium",
+      "paymentTerms": "Net 30",
+      "contractExpiry": "2024-03-15",
+      "certifications": [
+        {
+          "name": "ISO 9001:2015",
+          "valid": true,
+          "expirationDate": "2025-06-30"
+        },
+        {
+          "name": "ISO 14001:2015",
+          "valid": true,
+          "expirationDate": "2024-11-15"
+        },
+        {
+          "name": "RoHS Compliant",
+          "valid": true,
+          "expirationDate": "2024-12-31"
+        }
+      ],
+      "performanceHistory": [
+        {
+          "month": "Aug 2023",
+          "onTimeDelivery": 95,
+          "qualityCompliance": 98,
+          "costVariance": -2
+        },
+        {
+          "month": "Jul 2023",
+          "onTimeDelivery": 92,
+          "qualityCompliance": 97,
+          "costVariance": -1
+        },
+        {
+          "month": "Jun 2023",
+          "onTimeDelivery": 94,
+          "qualityCompliance": 95,
+          "costVariance": 0
+        },
+        {
+          "month": "May 2023",
+          "onTimeDelivery": 90,
+          "qualityCompliance": 96,
+          "costVariance": -3
+        },
+        {
+          "month": "Apr 2023",
+          "onTimeDelivery": 88,
+          "qualityCompliance": 94,
+          "costVariance": -2
+        },
+        {
+          "month": "Mar 2023",
+          "onTimeDelivery": 91,
+          "qualityCompliance": 93,
+          "costVariance": 1
+        }
+      ],
+      "riskFactors": [
+        {
+          "category": "Geopolitical",
+          "level": "medium",
+          "description": "Occasional political tensions in the region"
+        },
+        {
+          "category": "Supply Chain",
+          "level": "low",
+          "description": "Multiple backup suppliers available"
+        },
+        {
+          "category": "Financial",
+          "level": "low",
+          "description": "Strong financial position with consistent growth"
+        }
+      ],
+      "products": [
+        {
+          "id": 101,
+          "name": "Microcontrollers",
+          "category": "Semiconductors",
+          "leadTime": "2-3 weeks",
+          "minOrderQty": 1000,
+          "unitPrice": 15
+        },
+        {
+          "id": 102,
+          "name": "Sensors",
+          "category": "Electronic Components",
+          "leadTime": "1-2 weeks",
+          "minOrderQty": 500,
+          "unitPrice": 12
+        },
+        {
+          "id": 103,
+          "name": "PCB Assemblies",
+          "category": "Assemblies",
+          "leadTime": "3-4 weeks",
+          "minOrderQty": 100,
+          "unitPrice": 120
+        }
+      ],
+      "recentOrders": [
+        {
+          "id": "ORD-2023-421",
+          "date": "2023-09-15",
+          "status": "Delivered",
+          "amount": 45000
+        },
+        {
+          "id": "ORD-2023-387",
+          "date": "2023-08-28",
+          "status": "Delivered",
+          "amount": 32000
+        },
+        {
+          "id": "ORD-2023-352",
+          "date": "2023-07-15",
+          "status": "Delivered",
+          "amount": 58000
+        }
+      ],
+      "negotiationHistory": [
+        {
+          "date": "2023-06-15",
+          "outcome": "Success",
+          "savings": 8.2
+        },
+        {
+          "date": "2022-12-10",
+          "outcome": "Partial",
+          "savings": 5.0
+        },
+        {
+          "date": "2022-06-22",
+          "outcome": "Success",
+          "savings": 7.5
+        }
+      ],
+      "annualRevenue": 1200000,
+      "annualProfit": 240000,
+      "profitMargin": 20
+    },
+    {
+      "id": 2,
+      "name": "Global Packaging Solutions",
+      "logo": "/images/supplier2.png",
+      "description": "Global Packaging Solutions provides innovative and sustainable packaging solutions for consumer goods and industrial applications.",
+      "category": "Packaging",
+      "subcategory": "Custom Packaging",
+      "location": "Berlin, Germany",
+      "region": "Europe",
+      "foundedYear": 2010,
+      "employees": "500-1000",
+      "website": "https://globalpackaging.example.com",
+      "contactEmail": "contact@globalpackaging.example.com",
+      "contactPhone": "+49 30 5555 6789",
+      "rating": 4.5,
+      "reliabilityScore": 88,
+      "qualityScore": 90,
+      "deliveryScore": 87,
+      "communicationScore": 85,
+      "status": "active",
+      "complianceStatus": "compliant",
+      "lastOrder": "2023-08-28",
+      "averageDiscount": 6.2,
+      "currentPricing": "Standard",
+      "paymentTerms": "Net 45",
+      "contractExpiry": "2024-02-10",
+      "certifications": [
+        {
+          "name": "ISO 9001:2015",
+          "valid": true,
+          "expirationDate": "2024-10-15"
+        },
+        {
+          "name": "FSC Certified",
+          "valid": true,
+          "expirationDate": "2024-08-30"
+        },
+        {
+          "name": "Plastic-Free Packaging Alliance",
+          "valid": true,
+          "expirationDate": "2025-01-15"
+        }
+      ],
+      "performanceHistory": [
+        {
+          "month": "Aug 2023",
+          "onTimeDelivery": 92,
+          "qualityCompliance": 94,
+          "costVariance": -1
+        },
+        {
+          "month": "Jul 2023",
+          "onTimeDelivery": 90,
+          "qualityCompliance": 92,
+          "costVariance": 0
+        },
+        {
+          "month": "Jun 2023",
+          "onTimeDelivery": 88,
+          "qualityCompliance": 91,
+          "costVariance": 1
+        },
+        {
+          "month": "May 2023",
+          "onTimeDelivery": 85,
+          "qualityCompliance": 90,
+          "costVariance": 0
+        },
+        {
+          "month": "Apr 2023",
+          "onTimeDelivery": 87,
+          "qualityCompliance": 89,
+          "costVariance": -1
+        },
+        {
+          "month": "Mar 2023",
+          "onTimeDelivery": 84,
+          "qualityCompliance": 88,
+          "costVariance": 2
+        }
+      ],
+      "riskFactors": [
+        {
+          "category": "Geopolitical",
+          "level": "low",
+          "description": "Stable political environment in Europe"
+        },
+        {
+          "category": "Supply Chain",
+          "level": "medium",
+          "description": "Dependent on imported raw materials"
+        },
+        {
+          "category": "Financial",
+          "level": "low",
+          "description": "Solid financial standing with diverse clientele"
+        }
+      ],
+      "products": [
+        {
+          "id": 201,
+          "name": "Custom Boxes",
+          "category": "Packaging",
+          "leadTime": "2-3 weeks",
+          "minOrderQty": 5000,
+          "unitPrice": 2
+        },
+        {
+          "id": 202,
+          "name": "Protective Packaging",
+          "category": "Packaging",
+          "leadTime": "1-2 weeks",
+          "minOrderQty": 1000,
+          "unitPrice": 5
+        },
+        {
+          "id": 203,
+          "name": "Shipping Materials",
+          "category": "Packaging",
+          "leadTime": "1 week",
+          "minOrderQty": 10000,
+          "unitPrice": 0.5
+        }
+      ],
+      "recentOrders": [
+        {
+          "id": "ORD-2023-415",
+          "date": "2023-08-25",
+          "status": "Delivered",
+          "amount": 5000
+        },
+        {
+          "id": "ORD-2023-376",
+          "date": "2023-07-18",
+          "status": "Delivered",
+          "amount": 15000
+        },
+        {
+          "id": "ORD-2023-342",
+          "date": "2023-06-12",
+          "status": "Delivered",
+          "amount": 12000
+        }
+      ],
+      "negotiationHistory": [
+        {
+          "date": "2023-07-10",
+          "outcome": "Success",
+          "savings": 6.2
+        },
+        {
+          "date": "2022-11-15",
+          "outcome": "Success",
+          "savings": 5.8
+        },
+        {
+          "date": "2022-05-20",
+          "outcome": "Partial",
+          "savings": 3.5
+        }
+      ],
+      "annualRevenue": 800000,
+      "annualProfit": 160000,
+      "profitMargin": 20
+    },
+    {
+      "id": 3,
+      "name": "RawMat Suppliers Inc",
+      "logo": "/images/supplier3.png",
+      "description": "RawMat Suppliers Inc specializes in providing high-quality raw materials for manufacturing, including industrial polymers and adhesives.",
+      "category": "Raw Materials",
+      "subcategory": "Industrial Polymers",
+      "location": "Chicago, USA",
+      "region": "North America",
+      "foundedYear": 1998,
+      "employees": "100-500",
+      "website": "https://rawmat.example.com",
+      "contactEmail": "sales@rawmat.example.com",
+      "contactPhone": "+1 312 555 7890",
+      "rating": 4.2,
+      "reliabilityScore": 85,
+      "qualityScore": 88,
+      "deliveryScore": 82,
+      "communicationScore": 80,
+      "status": "active",
+      "complianceStatus": "review",
+      "lastOrder": "2023-09-05",
+      "averageDiscount": 5.5,
+      "currentPricing": "Economy",
+      "paymentTerms": "Net 60",
+      "contractExpiry": "2024-04-30",
+      "certifications": [
+        {
+          "name": "ISO 9001:2015",
+          "valid": true,
+          "expirationDate": "2024-05-20"
+        },
+        {
+          "name": "REACH Compliant",
+          "valid": true,
+          "expirationDate": "2024-07-10"
+        },
+        {
+          "name": "ISO 14001:2015",
+          "valid": false,
+          "expirationDate": "2023-06-15"
+        }
+      ],
+      "performanceHistory": [
+        {
+          "month": "Aug 2023",
+          "onTimeDelivery": 86,
+          "qualityCompliance": 90,
+          "costVariance": 1
+        },
+        {
+          "month": "Jul 2023",
+          "onTimeDelivery": 84,
+          "qualityCompliance": 88,
+          "costVariance": 2
+        },
+        {
+          "month": "Jun 2023",
+          "onTimeDelivery": 80,
+          "qualityCompliance": 87,
+          "costVariance": 0
+        },
+        {
+          "month": "May 2023",
+          "onTimeDelivery": 81,
+          "qualityCompliance": 85,
+          "costVariance": -1
+        },
+        {
+          "month": "Apr 2023",
+          "onTimeDelivery": 83,
+          "qualityCompliance": 86,
+          "costVariance": 3
+        },
+        {
+          "month": "Mar 2023",
+          "onTimeDelivery": 79,
+          "qualityCompliance": 84,
+          "costVariance": 1
+        }
+      ],
+      "riskFactors": [
+        {
+          "category": "Geopolitical",
+          "level": "low",
+          "description": "Stable business environment in the USA"
+        },
+        {
+          "category": "Supply Chain",
+          "level": "medium",
+          "description": "Susceptible to raw material price fluctuations"
+        },
+        {
+          "category": "Financial",
+          "level": "medium",
+          "description": "Expansion causing increased debt load"
+        }
+      ],
+      "products": [
+        {
+          "id": 301,
+          "name": "Industrial Polymers",
+          "category": "Raw Materials",
+          "leadTime": "2-4 weeks",
+          "minOrderQty": 500,
+          "unitPrice": 40
+        },
+        {
+          "id": 302,
+          "name": "Adhesives",
+          "category": "Raw Materials",
+          "leadTime": "1-2 weeks",
+          "minOrderQty": 200,
+          "unitPrice": 30
+        },
+        {
+          "id": 303,
+          "name": "Metals",
+          "category": "Raw Materials",
+          "leadTime": "3-5 weeks",
+          "minOrderQty": 1000,
+          "unitPrice": 25
+        }
+      ],
+      "recentOrders": [
+        {
+          "id": "ORD-2023-418",
+          "date": "2023-09-05",
+          "status": "Processing",
+          "amount": 26000
+        },
+        {
+          "id": "ORD-2023-389",
+          "date": "2023-08-12",
+          "status": "Delivered",
+          "amount": 18000
+        },
+        {
+          "id": "ORD-2023-360",
+          "date": "2023-07-01",
+          "status": "Delivered",
+          "amount": 22000
+        }
+      ],
+      "negotiationHistory": [
+        {
+          "date": "2023-05-20",
+          "outcome": "Partial",
+          "savings": 4.2
+        },
+        {
+          "date": "2022-10-05",
+          "outcome": "Success",
+          "savings": 6.5
+        },
+        {
+          "date": "2022-04-15",
+          "outcome": "Success",
+          "savings": 5.8
+        }
+      ],
+      "annualRevenue": 600000,
+      "annualProfit": 90000,
+      "profitMargin": 15
+    },
+    {
+      "id": 4,
+      "name": "FastTrack Logistics",
+      "logo": "/images/supplier4.png",
+      "description": "FastTrack Logistics offers comprehensive express shipping, warehousing, and distribution services.",
+      "category": "Logistics",
+      "subcategory": "Express Shipping",
+      "location": "Atlanta, USA",
+      "region": "North America",
+      "foundedYear": 2007,
+      "employees": "1000-5000",
+      "website": "https://fasttracklogistics.example.com",
+      "contactEmail": "info@fasttrack.example.com",
+      "contactPhone": "+1 404 555 2345",
+      "rating": 4.6,
+      "reliabilityScore": 90,
+      "qualityScore": 88,
+      "deliveryScore": 95,
+      "communicationScore": 88,
+      "status": "inactive",
+      "complianceStatus": "non-compliant",
+      "lastOrder": "2023-09-10",
+      "averageDiscount": 4.8,
+      "currentPricing": "Premium",
+      "paymentTerms": "Net 15",
+      "contractExpiry": "2024-01-15",
+      "certifications": [
+        {
+          "name": "ISO 9001:2015",
+          "valid": true,
+          "expirationDate": "2024-03-15"
+        },
+        {
+          "name": "C-TPAT Certified",
+          "valid": false,
+          "expirationDate": "2023-08-20"
+        },
+        {
+          "name": "ISPM 15 Compliant",
+          "valid": true,
+          "expirationDate": "2024-02-28"
+        }
+      ],
+      "performanceHistory": [
+        {
+          "month": "Aug 2023",
+          "onTimeDelivery": 97,
+          "qualityCompliance": 92,
+          "costVariance": 2
+        },
+        {
+          "month": "Jul 2023",
+          "onTimeDelivery": 98,
+          "qualityCompliance": 90,
+          "costVariance": 1
+        },
+        {
+          "month": "Jun 2023",
+          "onTimeDelivery": 96,
+          "qualityCompliance": 89,
+          "costVariance": 0
+        },
+        {
+          "month": "May 2023",
+          "onTimeDelivery": 95,
+          "qualityCompliance": 87,
+          "costVariance": 3
+        },
+        {
+          "month": "Apr 2023",
+          "onTimeDelivery": 97,
+          "qualityCompliance": 88,
+          "costVariance": 2
+        },
+        {
+          "month": "Mar 2023",
+          "onTimeDelivery": 94,
+          "qualityCompliance": 86,
+          "costVariance": 1
+        }
+      ],
+      "riskFactors": [
+        {
+          "category": "Geopolitical",
+          "level": "low",
+          "description": "Operates in stable regions"
+        },
+        {
+          "category": "Supply Chain",
+          "level": "high",
+          "description": "Susceptible to fuel price and labor shortages"
+        },
+        {
+          "category": "Financial",
+          "level": "medium",
+          "description": "High operational costs with thin margins"
+        }
+      ],
+      "products": [
+        {
+          "id": 401,
+          "name": "Express Shipping",
+          "category": "Logistics",
+          "leadTime": "1-3 days",
+          "minOrderQty": 1,
+          "unitPrice": 8000
+        },
+        {
+          "id": 402,
+          "name": "Warehousing",
+          "category": "Logistics",
+          "leadTime": "Immediate",
+          "minOrderQty": 1,
+          "unitPrice": 5000
+        },
+        {
+          "id": 403,
+          "name": "Distribution",
+          "category": "Logistics",
+          "leadTime": "1 week",
+          "minOrderQty": 1,
+          "unitPrice": 7500
+        }
+      ],
+      "recentOrders": [
+        {
+          "id": "ORD-2023-419",
+          "date": "2023-09-10",
+          "status": "Shipped",
+          "amount": 8000
+        },
+        {
+          "id": "ORD-2023-401",
+          "date": "2023-08-22",
+          "status": "Delivered",
+          "amount": 12500
+        },
+        {
+          "id": "ORD-2023-375",
+          "date": "2023-08-05",
+          "status": "Delivered",
+          "amount": 15000
+        }
+      ],
+      "negotiationHistory": [
+        {
+          "date": "2023-08-05",
+          "outcome": "Success",
+          "savings": 4.8
+        },
+        {
+          "date": "2023-01-20",
+          "outcome": "Partial",
+          "savings": 3.2
+        },
+        {
+          "date": "2022-07-10",
+          "outcome": "Success",
+          "savings": 5.0
+        }
+      ],
+      "annualRevenue": 1500000,
+      "annualProfit": 225000,
+      "profitMargin": 15
+    },
+    {
+      "id": 5,
+      "name": "Quality Service Providers",
+      "logo": "/images/supplier5.png",
+      "description": "Quality Service Providers delivers professional consulting and quality management services.",
+      "category": "Services",
+      "subcategory": "Quality Consulting",
+      "location": "London, UK",
+      "region": "Europe",
+      "foundedYear": 2011,
+      "employees": "50-100",
+      "website": "https://qualityservices.example.com",
+      "contactEmail": "enquiries@qualityservices.example.com",
+      "contactPhone": "+44 20 5555 6789",
+      "rating": 4.1,
+      "reliabilityScore": 82,
+      "qualityScore": 87,
+      "deliveryScore": 80,
+      "communicationScore": 94,
+      "status": "active",
+      "complianceStatus": "compliant",
+      "lastOrder": "2023-08-15",
+      "averageDiscount": 8.0,
+      "currentPricing": "Standard",
+      "paymentTerms": "Net 45",
+      "contractExpiry": "2024-06-15",
+      "certifications": [
+        {
+          "name": "ISO 9001:2015",
+          "valid": true,
+          "expirationDate": "2025-01-10"
+        },
+        {
+          "name": "ISO 27001:2013",
+          "valid": true,
+          "expirationDate": "2024-09-15"
+        },
+        {
+          "name": "Six Sigma Certification",
+          "valid": true,
+          "expirationDate": "2024-05-20"
+        }
+      ],
+      "performanceHistory": [
+        {
+          "month": "Aug 2023",
+          "onTimeDelivery": 84,
+          "qualityCompliance": 92,
+          "costVariance": -1
+        },
+        {
+          "month": "Jul 2023",
+          "onTimeDelivery": 82,
+          "qualityCompliance": 90,
+          "costVariance": 0
+        },
+        {
+          "month": "Jun 2023",
+          "onTimeDelivery": 80,
+          "qualityCompliance": 89,
+          "costVariance": -2
+        },
+        {
+          "month": "May 2023",
+          "onTimeDelivery": 83,
+          "qualityCompliance": 88,
+          "costVariance": 1
+        },
+        {
+          "month": "Apr 2023",
+          "onTimeDelivery": 81,
+          "qualityCompliance": 91,
+          "costVariance": -1
+        },
+        {
+          "month": "Mar 2023",
+          "onTimeDelivery": 79,
+          "qualityCompliance": 87,
+          "costVariance": 0
+        }
+      ],
+      "riskFactors": [
+        {
+          "category": "Geopolitical",
+          "level": "low",
+          "description": "Stable business environment in the UK"
+        },
+        {
+          "category": "Supply Chain",
+          "level": "low",
+          "description": "Minimal dependency due to service-based nature"
+        },
+        {
+          "category": "Financial",
+          "level": "medium",
+          "description": "Small firm with limited financial buffers"
+        }
+      ],
+      "products": [
+        {
+          "id": 501,
+          "name": "Consulting Services",
+          "category": "Services",
+          "leadTime": "On-demand",
+          "minOrderQty": 1,
+          "unitPrice": 15000
+        },
+        {
+          "id": 502,
+          "name": "Quality Audits",
+          "category": "Services",
+          "leadTime": "2-3 weeks",
+          "minOrderQty": 1,
+          "unitPrice": 2000
+        },
+        {
+          "id": 503,
+          "name": "Training",
+          "category": "Services",
+          "leadTime": "1-2 weeks",
+          "minOrderQty": 1,
+          "unitPrice": 5000
+        }
+      ],
+      "recentOrders": [
+        {
+          "id": "ORD-2023-416",
+          "date": "2023-08-28",
+          "status": "Processing",
+          "amount": 25000
+        },
+        {
+          "id": "ORD-2023-386",
+          "date": "2023-07-12",
+          "status": "Delivered",
+          "amount": 17000
+        },
+        {
+          "id": "ORD-2023-355",
+          "date": "2023-06-05",
+          "status": "Delivered",
+          "amount": 13000
+        }
+      ],
+      "negotiationHistory": [
+        {
+          "date": "2023-06-30",
+          "outcome": "Success",
+          "savings": 8.0
+        },
+        {
+          "date": "2022-12-20",
+          "outcome": "Success",
+          "savings": 7.5
+        },
+        {
+          "date": "2022-06-05",
+          "outcome": "Partial",
+          "savings": 4.0
+        }
+      ],
+      "annualRevenue": 500000,
+      "annualProfit": 75000,
+      "profitMargin": 15
+    },
+    {
+      "id": 6,
+      "name": "ChemSolutions Ltd",
+      "logo": "/images/supplier6.png",
+      "description": "ChemSolutions Ltd manufactures and distributes industrial chemicals and solvents for various sectors.",
+      "category": "Chemicals",
+      "subcategory": "Industrial Chemicals",
+      "location": "Frankfurt, Germany",
+      "region": "Europe",
+      "foundedYear": 2003,
+      "employees": "100-500",
+      "website": "https://chemsolutions.example.com",
+      "contactEmail": "sales@chemsolutions.example.com",
+      "contactPhone": "+49 69 5555 8901",
+      "rating": 4.3,
+      "reliabilityScore": 87,
+      "qualityScore": 89,
+      "deliveryScore": 85,
+      "communicationScore": 83,
+      "status": "active",
+      "complianceStatus": "compliant",
+      "lastOrder": "2023-09-01",
+      "averageDiscount": 6.8,
+      "currentPricing": "Premium",
+      "paymentTerms": "Net 30",
+      "contractExpiry": "2024-05-15",
+      "certifications": [
+        {
+          "name": "ISO 9001:2015",
+          "valid": true,
+          "expirationDate": "2024-08-10"
+        },
+        {
+          "name": "ISO 14001:2015",
+          "valid": true,
+          "expirationDate": "2024-07-15"
+        },
+        {
+          "name": "REACH Compliant",
+          "valid": true,
+          "expirationDate": "2024-12-20"
+        }
+      ],
+      "performanceHistory": [
+        {
+          "month": "Aug 2023",
+          "onTimeDelivery": 89,
+          "qualityCompliance": 92,
+          "costVariance": 0
+        },
+        {
+          "month": "Jul 2023",
+          "onTimeDelivery": 87,
+          "qualityCompliance": 90,
+          "costVariance": -1
+        },
+        {
+          "month": "Jun 2023",
+          "onTimeDelivery": 86,
+          "qualityCompliance": 91,
+          "costVariance": 1
+        },
+        {
+          "month": "May 2023",
+          "onTimeDelivery": 84,
+          "qualityCompliance": 88,
+          "costVariance": 0
+        },
+        {
+          "month": "Apr 2023",
+          "onTimeDelivery": 88,
+          "qualityCompliance": 87,
+          "costVariance": 2
+        },
+        {
+          "month": "Mar 2023",
+          "onTimeDelivery": 85,
+          "qualityCompliance": 89,
+          "costVariance": -1
+        }
+      ],
+      "riskFactors": [
+        {
+          "category": "Geopolitical",
+          "level": "low",
+          "description": "Stable market conditions in Europe"
+        },
+        {
+          "category": "Supply Chain",
+          "level": "medium",
+          "description": "Dependence on international raw materials"
+        },
+        {
+          "category": "Financial",
+          "level": "low",
+          "description": "Healthy profit margins and solid financials"
+        }
+      ],
+      "products": [
+        {
+          "id": 601,
+          "name": "Solvents",
+          "category": "Chemicals",
+          "leadTime": "2-3 weeks",
+          "minOrderQty": 200,
+          "unitPrice": 45
+        },
+        {
+          "id": 602,
+          "name": "Adhesives",
+          "category": "Chemicals",
+          "leadTime": "1-2 weeks",
+          "minOrderQty": 100,
+          "unitPrice": 60
+        },
+        {
+          "id": 603,
+          "name": "Cleaning Chemicals",
+          "category": "Chemicals",
+          "leadTime": "1-2 weeks",
+          "minOrderQty": 300,
+          "unitPrice": 35
+        }
+      ],
+      "recentOrders": [
+        {
+          "id": "ORD-2023-412",
+          "date": "2023-09-01",
+          "status": "Processing",
+          "amount": 22000
+        },
+        {
+          "id": "ORD-2023-390",
+          "date": "2023-08-10",
+          "status": "Delivered",
+          "amount": 185400
+        },
+        {
+          "id": "ORD-2023-361",
+          "date": "2023-07-05",
+          "status": "Delivered",
+          "amount": 15000
+        }
+      ],
+      "negotiationHistory": [
+        {
+          "date": "2023-07-15",
+          "outcome": "Success",
+          "savings": 6.8
+        },
+        {
+          "date": "2022-12-05",
+          "outcome": "Partial",
+          "savings": 4.5
+        },
+        {
+          "date": "2022-05-12",
+          "outcome": "Success",
+          "savings": 7.2
+        }
+      ],
+      "annualRevenue": 950000,
+      "annualProfit": 142500,
+      "profitMargin": 15
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-2023-421",
+      "supplierId": 1,
+      "supplierName": "ElectroTech Industries",
+      "date": "2023-09-15",
+      "deliveryDate": "2023-09-30",
+      "status": "processing",
+      "items": [
+        {
+          "name": "Microcontrollers",
+          "quantity": 1000,
+          "unitPrice": 15,
+          "total": 15000
+        },
+        {
+          "name": "Sensors",
+          "quantity": 2000,
+          "unitPrice": 12,
+          "total": 24000
+        }
+      ],
+      "total": 39000,
+      "paymentTerms": "Net 30",
+      "notes": "Priority order for Q4 production",
+      "lastUpdated": "2023-09-16"
+    },
+    {
+      "id": "ORD-2023-420",
+      "supplierId": 2,
+      "supplierName": "Global Packaging Solutions",
+      "date": "2023-09-14",
+      "deliveryDate": "2023-09-28",
+      "status": "draft",
+      "items": [
+        {
+          "name": "Custom Boxes",
+          "quantity": 5000,
+          "unitPrice": 2,
+          "total": 10000
+        },
+        {
+          "name": "Protective Packaging",
+          "quantity": 1000,
+          "unitPrice": 5,
+          "total": 5000
+        }
+      ],
+      "total": 15000,
+      "paymentTerms": "Net 30",
+      "notes": "Awaiting final approval",
+      "lastUpdated": "2023-09-14"
+    },
+    {
+      "id": "ORD-2023-419",
+      "supplierId": 4,
+      "supplierName": "FastTrack Logistics",
+      "date": "2023-09-10",
+      "deliveryDate": "2023-09-17",
+      "status": "shipped",
+      "items": [
+        {
+          "name": "Express Shipping",
+          "quantity": 1,
+          "unitPrice": 8000,
+          "total": 8000
+        }
+      ],
+      "total": 8000,
+      "paymentTerms": "Net 15",
+      "notes": "Time-sensitive shipment",
+      "lastUpdated": "2023-09-12",
+      "trackingNumber": "FTL-39485-28B"
+    },
+    {
+      "id": "ORD-2023-42349",
+      "supplierId": 6,
+      "supplierName": "FastTrack Logistics",
+      "date": "2023-09-10",
+      "deliveryDate": "2023-09-17",
+      "status": "shipped",
+      "items": [
+        {
+          "name": "Solvents",
+          "quantity": 12,
+          "unitPrice": 8000,
+          "total": 8000
+        }
+      ],
+      "total": 8000,
+      "paymentTerms": "Net 15",
+      "notes": "Time-sensitive shipment",
+      "lastUpdated": "2023-09-12",
+      "trackingNumber": "FTL-39485-28B"
+    },
+    {
+      "id": "ORD-2023-418",
+      "supplierId": 3,
+      "supplierName": "RawMat Suppliers Inc",
+      "date": "2023-09-05",
+      "deliveryDate": "2023-09-20",
+      "status": "processing",
+      "items": [
+        {
+          "name": "Industrial Polymers",
+          "quantity": 500,
+          "unitPrice": 40,
+          "total": 20000
+        },
+        {
+          "name": "Adhesives",
+          "quantity": 200,
+          "unitPrice": 30,
+          "total": 6000
+        }
+      ],
+      "total": 26000,
+      "paymentTerms": "Net 30",
+      "notes": "Special handling required",
+      "lastUpdated": "2023-09-08"
+    },
+    {
+      "id": "ORD-2023-417",
+      "supplierId": 1,
+      "supplierName": "ElectroTech Industries",
+      "date": "2023-09-01",
+      "deliveryDate": "2023-09-15",
+      "status": "delivered",
+      "items": [
+        {
+          "name": "PCB Assemblies",
+          "quantity": 100,
+          "unitPrice": 120,
+          "total": 12000
+        }
+      ],
+      "total": 12000,
+      "paymentTerms": "Net 30",
+      "notes": "Delivered on time, quality check passed",
+      "lastUpdated": "2023-09-16",
+      "deliveredDate": "2023-09-15"
+    },
+    {
+      "id": "ORD-2023-416",
+      "supplierId": 5,
+      "supplierName": "Quality Service Providers",
+      "date": "2023-08-28",
+      "deliveryDate": "2023-10-15",
+      "status": "processing",
+      "items": [
+        {
+          "name": "Consulting Services",
+          "quantity": 1,
+          "unitPrice": 15000,
+          "total": 15000
+        },
+        {
+          "name": "Quality Audits",
+          "quantity": 5,
+          "unitPrice": 2000,
+          "total": 10000
+        }
+      ],
+      "total": 25000,
+      "paymentTerms": "Net 45",
+      "notes": "Ongoing service contract",
+      "lastUpdated": "2023-09-10"
+    },
+    {
+      "id": "ORD-2023-415",
+      "supplierId": 2,
+      "supplierName": "Global Packaging Solutions",
+      "date": "2023-08-25",
+      "deliveryDate": "2023-09-08",
+      "status": "delivered",
+      "items": [
+        {
+          "name": "Shipping Materials",
+          "quantity": 10000,
+          "unitPrice": 0.5,
+          "total": 5000
+        }
+      ],
+      "total": 5000,
+      "paymentTerms": "Net 30",
+      "notes": "Regular monthly order",
+      "lastUpdated": "2023-09-09",
+      "deliveredDate": "2023-09-08"
+    }
+  ],
+  "negotiations": [
+    {
+      "id": 1,
+      "supplierId": 1,
+      "supplierName": "ElectroTech Industries",
+      "category": "Electronics",
+      "startDate": "2023-09-10",
+      "status": "active",
+      "nextAction": "Awaiting supplier response",
+      "lastActivity": "2023-09-15",
+      "products": [
+        "Microcontrollers",
+        "Sensors"
+      ],
+      "targetSavings": 8.5,
+      "currentStage": "Counter Offer",
+      "priority": "high"
+    },
+    {
+      "id": 2,
+      "supplierId": 2,
+      "supplierName": "Global Packaging Solutions",
+      "category": "Packaging",
+      "startDate": "2023-09-05",
+      "status": "active",
+      "nextAction": "Review supplier proposal",
+      "lastActivity": "2023-09-14",
+      "products": [
+        "Custom Boxes",
+        "Protective Packaging"
+      ],
+      "targetSavings": 5.2,
+      "currentStage": "Initial Proposal",
+      "priority": "medium"
+    },
+    {
+      "id": 3,
+      "supplierId": 3,
+      "supplierName": "RawMat Suppliers Inc",
+      "category": "Raw Materials",
+      "startDate": "2023-08-28",
+      "status": "scheduled",
+      "nextAction": "Kickoff meeting on 2023-09-20",
+      "lastActivity": "2023-09-12",
+      "products": [
+        "Industrial Polymers",
+        "Adhesives"
+      ],
+      "targetSavings": 7.0,
+      "currentStage": "Planning",
+      "priority": "low"
+    },
+    {
+      "id": 4,
+      "supplierId": 5,
+      "supplierName": "Quality Service Providers",
+      "category": "Services",
+      "startDate": "2023-08-15",
+      "status": "completed",
+      "nextAction": "Implementation",
+      "lastActivity": "2023-09-08",
+      "products": [
+        "Consulting Services",
+        "Quality Audits"
+      ],
+      "targetSavings": 10.0,
+      "currentStage": "Agreement",
+      "priority": "medium",
+      "outcome": "Success",
+      "actualSavings": 11.2
+    }
+  ],
+  "compliance": [
+    {
+      "id": 1,
+      "supplierId": 1,
+      "supplierName": "ElectroTech Industries",
+      "documentType": "ISO 9001 Certification",
+      "status": "compliant",
+      "expiryDate": "2024-06-30",
+      "lastChecked": "2023-09-12",
+      "category": "Quality Management",
+      "notes": "Certification verified with issuing body"
+    },
+    {
+      "id": 2,
+      "supplierId": 1,
+      "supplierName": "ElectroTech Industries",
+      "documentType": "Environmental Policy",
+      "status": "compliant",
+      "expiryDate": "2024-11-15",
+      "lastChecked": "2023-09-12",
+      "category": "Environmental",
+      "notes": "Document meets all requirements"
+    },
+    {
+      "id": 3,
+      "supplierId": 2,
+      "supplierName": "Global Packaging Solutions",
+      "documentType": "Food Safety Certification",
+      "status": "review",
+      "expiryDate": "2023-10-30",
+      "lastChecked": "2023-09-10",
+      "category": "Product Safety",
+      "notes": "Certification expires in less than 60 days"
+    },
+    {
+      "id": 4,
+      "supplierId": 3,
+      "supplierName": "RawMat Suppliers Inc",
+      "documentType": "REACH Compliance",
+      "status": "non-compliant",
+      "expiryDate": "2023-07-15",
+      "lastChecked": "2023-09-05",
+      "category": "Regulatory",
+      "notes": "Certification expired, follow-up required"
+    },
+    {
+      "id": 5,
+      "supplierId": 4,
+      "supplierName": "FastTrack Logistics",
+      "documentType": "Insurance Certificate",
+      "status": "compliant",
+      "expiryDate": "2024-02-28",
+      "lastChecked": "2023-09-01",
+      "category": "Insurance",
+      "notes": "Coverage meets minimum requirements"
+    },
+    {
+      "id": 6,
+      "supplierId": 5,
+      "supplierName": "Quality Service Providers",
+      "documentType": "Professional Certifications",
+      "status": "compliant",
+      "expiryDate": "2024-05-15",
+      "lastChecked": "2023-08-20",
+      "category": "Professional Qualifications",
+      "notes": "All staff certifications verified"
+    },
+    {
+      "id": 7,
+      "supplierId": 3,
+      "supplierName": "RawMat Suppliers Inc",
+      "documentType": "Fair Labor Practices",
+      "status": "review",
+      "expiryDate": null,
+      "lastChecked": "2023-09-08",
+      "category": "Social Responsibility",
+      "notes": "Additional documentation requested"
+    }
+  ]
+}
+
+================
 File: lib/mockData.js
 ================
 // lib/mockData.js
@@ -8911,7 +10749,7 @@ export const mockSuppliers = [
       recentOrders: [
         { id: 'ORD-2023-416', date: '2023-08-28', status: 'Processing', amount: 25000 },
         { id: 'ORD-2023-386', date: '2023-07-12', status: 'Delivered', amount: 17000 },
-        { id: 'ORD-2023-355', date: '2023-06-05', status: 'Delivered', amount: 12000 },
+        { id: 'ORD-2023-355', date: '2023-06-05', status: 'Delivered', amount: 13000 },
       ],
       negotiationHistory: [
         { date: '2023-06-30', outcome: 'Success', savings: 8.0 },
@@ -8973,7 +10811,7 @@ export const mockSuppliers = [
       ],
       recentOrders: [
         { id: 'ORD-2023-412', date: '2023-09-01', status: 'Processing', amount: 22000 },
-        { id: 'ORD-2023-390', date: '2023-08-10', status: 'Delivered', amount: 18500 },
+        { id: 'ORD-2023-390', date: '2023-08-10', status: 'Delivered', amount: 185400 },
         { id: 'ORD-2023-361', date: '2023-07-05', status: 'Delivered', amount: 15000 },
       ],
       negotiationHistory: [
@@ -9037,6 +10875,22 @@ export const mockOrders = [
         status: 'shipped',
         items: [
             { name: 'Express Shipping', quantity: 1, unitPrice: 8000, total: 8000 }
+        ],
+        total: 8000,
+        paymentTerms: 'Net 15',
+        notes: 'Time-sensitive shipment',
+        lastUpdated: '2023-09-12',
+        trackingNumber: 'FTL-39485-28B'
+    },
+    {
+        id: 'ORD-2023-42349',
+        supplierId: 6,
+        supplierName: 'FastTrack Logistics',
+        date: '2023-09-10',
+        deliveryDate: '2023-09-17',
+        status: 'shipped',
+        items: [
+            { name: 'Solvents', quantity: 12, unitPrice: 8000, total: 8000 }
         ],
         total: 8000,
         paymentTerms: 'Net 15',
@@ -9286,6 +11140,122 @@ File: lib/suppliers.csv
 4,"FastTrack Logistics","/images/supplier4.png","FastTrack Logistics offers comprehensive logistics solutions including express shipping, warehousing, and distribution services with a focus on speed and reliability for time-sensitive supply chains.","Logistics","Express Shipping","Atlanta, USA","North America",2007,"1000-5000","https://fasttracklogistics.example.com","info@fasttrack.example.com","+1 404 555 2345",4.6,90,88,95,88,"inactive","non-compliant","2023-09-10",4.8,"Premium","Net 15","2024-01-15","[{""name"":""ISO 9001:2015"",""valid"":true,""expirationDate"":""2024-03-15""},{""name"":""C-TPAT Certified"",""valid"":false,""expirationDate"":""2023-08-20""},{""name"":""ISPM 15 Compliant"",""valid"":true,""expirationDate"":""2024-02-28""}]","[{""month"":""Aug 2023"",""onTimeDelivery"":97,""qualityCompliance"":92,""costVariance"":2},{""month"":""Jul 2023"",""onTimeDelivery"":98,""qualityCompliance"":90,""costVariance"":1},{""month"":""Jun 2023"",""onTimeDelivery"":96,""qualityCompliance"":89,""costVariance"":0},{""month"":""May 2023"",""onTimeDelivery"":95,""qualityCompliance"":87,""costVariance"":3},{""month"":""Apr 2023"",""onTimeDelivery"":97,""qualityCompliance"":88,""costVariance"":2},{""month"":""Mar 2023"",""onTimeDelivery"":94,""qualityCompliance"":86,""costVariance"":1}]","[{""category"":""Geopolitical"",""level"":""low"",""description"":""Strong presence in stable markets""},{""category"":""Supply Chain"",""level"":""high"",""description"":""Vulnerable to fuel price fluctuations and labor shortages""},{""category"":""Financial"",""level"":""medium"",""description"":""High operational costs with thin margins""}]","[{""id"":401,""name"":""Express Shipping"",""category"":""Logistics"",""leadTime"":""1-3 days"",""minOrderQty"":1,""unitPrice"":8000},{""id"":402,""name"":""Warehousing"",""category"":""Logistics"",""leadTime"":""Immediate"",""minOrderQty"":1,""unitPrice"":5000},{""id"":403,""name"":""Distribution"",""category"":""Logistics"",""leadTime"":""1 week"",""minOrderQty"":1,""unitPrice"":7500}]","[{""id"":""ORD-2023-419"",""date"":""2023-09-10"",""status"":""Shipped"",""amount"":8000},{""id"":""ORD-2023-401"",""date"":""2023-08-22"",""status"":""Delivered"",""amount"":12500},{""id"":""ORD-2023-375"",""date"":""2023-08-05"",""status"":""Delivered"",""amount"":15000}]","[{""date"":""2023-08-05"",""outcome"":""Success"",""savings"":4.8},{""date"":""2023-01-20"",""outcome"":""Partial"",""savings"":3.2},{""date"":""2022-07-10"",""outcome"":""Success"",""savings"":5}]"
 5,"Quality Service Providers","/images/supplier5.png","Quality Service Providers delivers professional consulting services focused on quality management, process improvement, and regulatory compliance for manufacturing and service industries.","Services","Quality Consulting","London, UK","Europe",2011,"50-100","https://qualityservices.example.com","enquiries@qualityservices.example.com","+44 20 5555 6789",4.1,82,87,80,94,"active","compliant","2023-08-15",8,"Standard","Net 45","2024-06-15","[{""name"":""ISO 9001:2015"",""valid"":true,""expirationDate"":""2025-01-10""},{""name"":""ISO 27001:2013"",""valid"":true,""expirationDate"":""2024-09-15""},{""name"":""Six Sigma Certification"",""valid"":true,""expirationDate"":""2024-05-20""}]","[{""month"":""Aug 2023"",""onTimeDelivery"":84,""qualityCompliance"":92,""costVariance"":-1},{""month"":""Jul 2023"",""onTimeDelivery"":82,""qualityCompliance"":90,""costVariance"":0},{""month"":""Jun 2023"",""onTimeDelivery"":80,""qualityCompliance"":89,""costVariance"":-2},{""month"":""May 2023"",""onTimeDelivery"":83,""qualityCompliance"":88,""costVariance"":1},{""month"":""Apr 2023"",""onTimeDelivery"":81,""qualityCompliance"":91,""costVariance"":-1},{""month"":""Mar 2023"",""onTimeDelivery"":79,""qualityCompliance"":87,""costVariance"":0}]","[{""category"":""Geopolitical"",""level"":""low"",""description"":""Operates in stable business environments""},{""category"":""Supply Chain"",""level"":""low"",""description"":""Service-based business with minimal supply chain dependencies""},{""category"":""Financial"",""level"":""medium"",""description"":""Small company with limited financial buffers""}]","[{""id"":501,""name"":""Consulting Services"",""category"":""Services"",""leadTime"":""On-demand"",""minOrderQty"":1,""unitPrice"":15000},{""id"":502,""name"":""Quality Audits"",""category"":""Services"",""leadTime"":""2-3 weeks"",""minOrderQty"":1,""unitPrice"":2000},{""id"":503,""name"":""Training"",""category"":""Services"",""leadTime"":""1-2 weeks"",""minOrderQty"":1,""unitPrice"":5000}]","[{""id"":""ORD-2023-416"",""date"":""2023-08-28"",""status"":""Processing"",""amount"":25000},{""id"":""ORD-2023-386"",""date"":""2023-07-12"",""status"":""Delivered"",""amount"":17000},{""id"":""ORD-2023-355"",""date"":""2023-06-05"",""status"":""Delivered"",""amount"":12000}]","[{""date"":""2023-06-30"",""outcome"":""Success"",""savings"":8},{""date"":""2022-12-20"",""outcome"":""Success"",""savings"":7.5},{""date"":""2022-06-05"",""outcome"":""Partial"",""savings"":4}]"
 6,"ChemSolutions Ltd","/images/supplier6.png","ChemSolutions Ltd manufactures and distributes a wide range of industrial chemicals, solvents, and specialized chemical products for manufacturing, cleaning, and industrial processes.","Chemicals","Industrial Chemicals","Frankfurt, Germany","Europe",2003,"100-500","https://chemsolutions.example.com","sales@chemsolutions.example.com","+49 69 5555 8901",4.3,87,89,85,83,"active","compliant","2023-09-01",6.8,"Premium","Net 30","2024-05-15","[{""name"":""ISO 9001:2015"",""valid"":true,""expirationDate"":""2024-08-10""},{""name"":""ISO 14001:2015"",""valid"":true,""expirationDate"":""2024-07-15""},{""name"":""REACH Compliant"",""valid"":true,""expirationDate"":""2024-12-20""}]","[{""month"":""Aug 2023"",""onTimeDelivery"":89,""qualityCompliance"":92,""costVariance"":0},{""month"":""Jul 2023"",""onTimeDelivery"":87,""qualityCompliance"":90,""costVariance"":-1},{""month"":""Jun 2023"",""onTimeDelivery"":86,""qualityCompliance"":91,""costVariance"":1},{""month"":""May 2023"",""onTimeDelivery"":84,""qualityCompliance"":88,""costVariance"":0},{""month"":""Apr 2023"",""onTimeDelivery"":88,""qualityCompliance"":87,""costVariance"":2},{""month"":""Mar 2023"",""onTimeDelivery"":85,""qualityCompliance"":89,""costVariance"":-1}]","[{""category"":""Geopolitical"",""level"":""low"",""description"":""Operates in stable European markets with good regulatory oversight""},{""category"":""Supply Chain"",""level"":""medium"",""description"":""Some raw materials sourced from regions with potential instability""},{""category"":""Financial"",""level"":""low"",""description"":""Strong financial position with healthy profit margins""}]","[{""id"":601,""name"":""Solvents"",""category"":""Chemicals"",""leadTime"":""2-3 weeks"",""minOrderQty"":200,""unitPrice"":45},{""id"":602,""name"":""Adhesives"",""category"":""Chemicals"",""leadTime"":""1-2 weeks"",""minOrderQty"":100,""unitPrice"":60},{""id"":603,""name"":""Cleaning Chemicals"",""category"":""Chemicals"",""leadTime"":""1-2 weeks"",""minOrderQty"":300,""unitPrice"":35}]","[{""id"":""ORD-2023-412"",""date"":""2023-09-01"",""status"":""Processing"",""amount"":22000},{""id"":""ORD-2023-390"",""date"":""2023-08-10"",""status"":""Delivered"",""amount"":18500},{""id"":""ORD-2023-361"",""date"":""2023-07-05"",""status"":""Delivered"",""amount"":15000}]","[{""date"":""2023-07-15"",""outcome"":""Success"",""savings"":6.8},{""date"":""2022-12-05"",""outcome"":""Partial"",""savings"":4.5},{""date"":""2022-05-12"",""outcome"":""Success"",""savings"":7.2}]"
+
+================
+File: lib/test.py
+================
+import json
+import re
+
+
+def transform_mock_data_to_json(js_file_path, json_output_path):
+    """
+    Transform mockData.js to JSON format and save it to a file.
+    
+    Args:
+        js_file_path: Path to the mockData.js file
+        json_output_path: Path where the JSON file should be saved
+    
+    Returns:
+        dict: The transformed data as a Python dictionary
+    """
+    # Read the JavaScript file
+    with open(js_file_path, 'r') as file:
+        js_content = file.read()
+
+    # Extract the different mock data arrays
+    suppliers_match = re.search(r'export const mockSuppliers = (\[[\s\S]*?\]);', js_content)
+    orders_match = re.search(r'export const mockOrders = (\[[\s\S]*?\]);', js_content)
+    negotiations_match = re.search(r'export const mockNegotiations = (\[[\s\S]*?\]);', js_content)
+    compliance_match = re.search(r'export const mockComplianceItems = (\[[\s\S]*?\]);', js_content)
+
+    # Initialize the data dictionary
+    mock_data = {}
+
+    # Process suppliers data if found
+    if suppliers_match:
+        suppliers_js = suppliers_match.group(1)
+        # Replace JavaScript object syntax with JSON-compatible syntax
+        suppliers_json = clean_js_to_json(suppliers_js)
+        try:
+            mock_data['suppliers'] = json.loads(suppliers_json)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing suppliers JSON: {e}")
+
+    # Process orders data if found
+    if orders_match:
+        orders_js = orders_match.group(1)
+        orders_json = clean_js_to_json(orders_js)
+        try:
+            mock_data['orders'] = json.loads(orders_json)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing orders JSON: {e}")
+
+    # Process negotiations data if found
+    if negotiations_match:
+        negotiations_js = negotiations_match.group(1)
+        negotiations_json = clean_js_to_json(negotiations_js)
+        try:
+            mock_data['negotiations'] = json.loads(negotiations_json)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing negotiations JSON: {e}")
+
+    # Process compliance data if found
+    if compliance_match:
+        compliance_js = compliance_match.group(1)
+        compliance_json = clean_js_to_json(compliance_js)
+        try:
+            mock_data['compliance'] = json.loads(compliance_json)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing compliance JSON: {e}")
+
+    # Save the combined data to a JSON file
+    with open(json_output_path, 'w') as f:
+        json.dump(mock_data, f, indent=2)
+
+    return mock_data
+
+
+def clean_js_to_json(js_text):
+    """
+    Convert JavaScript object syntax to valid JSON.
+    
+    Args:
+        js_text: JavaScript object/array as text
+    
+    Returns:
+        str: JSON-compatible string
+    """
+    # Replace trailing commas in arrays and objects
+    js_text = re.sub(r',(\s*[\]}])', r'\1', js_text)
+
+    # Replace single quotes with double quotes (but not inside already double-quoted strings)
+    in_double_quotes = False
+    result = []
+    i = 0
+
+    while i < len(js_text):
+        if js_text[i] == '"' and (i == 0 or js_text[i - 1] != '\\'):
+            in_double_quotes = not in_double_quotes
+            result.append(js_text[i])
+        elif js_text[i] == "'" and not in_double_quotes:
+            result.append('"')
+        else:
+            result.append(js_text[i])
+        i += 1
+
+    js_text = ''.join(result)
+
+    # Add double quotes to unquoted property names
+    js_text = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)(\s*:)', r'\1"\2"\3', js_text)
+
+    return js_text
+
+
+# Example usage:
+if __name__ == "__main__":
+    mock_data = transform_mock_data_to_json('mockData.js', 'mock_data.json')
+    print("Mock data transformed and saved to mock_data.json")
 
 ================
 File: public/file.svg

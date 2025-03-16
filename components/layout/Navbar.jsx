@@ -73,14 +73,6 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        {/* Settings button */}
-                        <button
-                            className="ml-3 p-1 rounded-full text-gray-500 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            <span className="sr-only">View settings</span>
-                            <FiSettings className="h-6 w-6" />
-                        </button>
-
                         {/* Profile dropdown */}
                         <div className="relative ml-3">
                             <div>
@@ -104,13 +96,6 @@ const Navbar = () => {
                                             role="menuitem"
                                         >
                                             Your Profile
-                                        </a>
-                                        <a
-                                            href="#"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                            role="menuitem"
-                                        >
-                                            Settings
                                         </a>
                                         <a
                                             href="#"

@@ -524,16 +524,6 @@ export default function ComplianceItemDetailsPage() {
 
                                 <div className="space-y-3">
                                     <Link
-                                        href={`/compliance/verify?documentId=${complianceItem.id}`}
-                                        className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
-                                    >
-                                        <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 mr-3">
-                                            <FiCheckCircle className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-sm font-medium">Verify Compliance</span>
-                                    </Link>
-
-                                    <Link
                                         href={`/compliance/analyze`}
                                         className="flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
                                     >

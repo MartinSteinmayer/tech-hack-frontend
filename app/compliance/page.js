@@ -354,12 +354,6 @@ export default function CompliancePage() {
                                             >
                                                 View
                                             </Link>
-                                            <Link
-                                                href={`/compliance/verify?documentId=${item.id}`}
-                                                className="text-green-600 hover:text-green-900"
-                                            >
-                                                Verify
-                                            </Link>
                                         </td>
                                     </tr>
                                 ))}
