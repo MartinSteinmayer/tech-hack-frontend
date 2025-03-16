@@ -26,72 +26,102 @@ export default function DocumentAnalysisPage() {
 
     // Mock analysis results for the hackathon
     const mockResults = {
-        documentName: 'supplier_agreement_revision2.pdf',
-        documentType: 'Supplier Agreement',
-        status: 'review',
-        complianceScore: 75,
-        supplierName: 'Global Packaging Solutions',
-        supplierId: 2,
+        documentName: 'ElectroTech_Industries_Supply_Agreement_Contract.pdf',
+        documentType: 'Supply Agreement Contract',
+        status: 'compliant',
+        complianceScore: 92,
+        supplierName: 'ElectroTech Industries',
+        supplierId: 3, // Assuming this would be the ID in your system
         dateAnalyzed: new Date().toISOString(),
-        summary: 'The document is generally compliant but contains some clauses that require review. Specific areas of concern include liability limitations, warranty periods, and data protection provisions.',
+        summary: "This Supply Agreement Contract with ElectroTech Industries is highly compliant with our standards. The document includes appropriate terms for quality, delivery, compliance requirements, and governance. ISO certifications are current and verified. Two minor areas need attention: the ISO 14001:2015 certification expires within 8 months, and the contract's initial term has passed.",
         sections: [
             {
                 title: 'Document Identification',
                 status: 'compliant',
                 items: [
-                    { name: 'Document Type', value: 'Supplier Agreement', status: 'compliant' },
-                    { name: 'Parties Correctly Identified', value: 'Yes', status: 'compliant' },
-                    { name: 'Agreement Date', value: '2023-08-15', status: 'compliant' },
-                    { name: 'Version Control', value: 'Revision 2.0', status: 'compliant' },
+                    { name: 'Document Type', value: 'Supply Agreement Contract', status: 'compliant' },
+                    { name: 'Contract Reference', value: 'ETI-SA-2023-0892', status: 'compliant' },
+                    { name: 'Issue Date', value: 'March 15, 2023', status: 'compliant' },
+                    { name: 'Expiry Date', value: 'March 15, 2024', status: 'review', notes: 'Contract term has expired and needs renewal' },
                 ]
             },
             {
-                title: 'Core Terms',
-                status: 'review',
-                items: [
-                    { name: 'Payment Terms', value: 'Net 45', status: 'compliant' },
-                    { name: 'Delivery Terms', value: 'FOB Destination', status: 'compliant' },
-                    { name: 'Contract Duration', value: '24 months', status: 'compliant' },
-                    { name: 'Termination Clause', value: '60 days notice', status: 'review', notes: 'Standard is 30 days notice' },
-                ]
-            },
-            {
-                title: 'Liability & Warranties',
-                status: 'non-compliant',
-                items: [
-                    { name: 'Liability Cap', value: 'Limited to 50% of contract value', status: 'non-compliant', notes: 'Below minimum requirement of 100% of contract value' },
-                    { name: 'Warranty Period', value: '6 months', status: 'non-compliant', notes: 'Below minimum standard of 12 months' },
-                    { name: 'Indemnification', value: 'Present, but limited scope', status: 'review', notes: 'Does not cover all required areas' },
-                    { name: 'Insurance Requirements', value: 'Present and adequate', status: 'compliant' },
-                ]
-            },
-            {
-                title: 'Data & Confidentiality',
-                status: 'review',
-                items: [
-                    { name: 'Confidentiality Clause', value: 'Present', status: 'compliant' },
-                    { name: 'Data Protection', value: 'Present but incomplete', status: 'review', notes: 'Missing specific GDPR provisions' },
-                    { name: 'Intellectual Property', value: 'Clearly defined', status: 'compliant' },
-                    { name: 'Data Security Standards', value: 'Referenced but not detailed', status: 'review', notes: 'Should reference specific security standards' },
-                ]
-            },
-            {
-                title: 'Regulatory Compliance',
+                title: 'Parties Information',
                 status: 'compliant',
                 items: [
-                    { name: 'Environmental Standards', value: 'ISO 14001 commitment', status: 'compliant' },
-                    { name: 'Labor Compliance', value: 'References all required standards', status: 'compliant' },
-                    { name: 'Anti-corruption', value: 'FCPA and UK Bribery Act compliant', status: 'compliant' },
-                    { name: 'Export Controls', value: 'Addressed adequately', status: 'compliant' },
+                    { name: 'Supplier Name', value: 'ElectroTech Industries', status: 'compliant' },
+                    { name: 'Supplier Address', value: '1258 Industrial Lane, Shanghai, China', status: 'compliant' },
+                    { name: 'Supplier Registration', value: 'SH78923654-B', status: 'compliant' },
+                    { name: 'Supplier Representative', value: 'Wei Zhang, Chief Operations Officer', status: 'compliant' },
+                    { name: 'Buyer', value: 'Global Manufacturing Corp.', status: 'compliant' },
+                ]
+            },
+            {
+                title: 'Scope of Agreement',
+                status: 'compliant',
+                items: [
+                    { name: 'Primary Products', value: 'Microcontrollers, Sensors, PCB Assemblies', status: 'compliant' },
+                    { name: 'Product IDs', value: '101, 102, 103', status: 'compliant' },
+                    { name: 'Specifications Reference', value: 'Attachment A', status: 'compliant' },
+                ]
+            },
+            {
+                title: 'Compliance Requirements',
+                status: 'compliant',
+                items: [
+                    { name: 'ISO 9001:2015', value: 'Certificate QMS-78932-ISO9K, Valid until June 30, 2025', status: 'compliant' },
+                    { name: 'ISO 14001:2015', value: 'Certificate EMS-45678-ISO14K, Valid until November 15, 2024', status: 'review', notes: 'Expires in less than 8 months' },
+                    { name: 'RoHS Compliance', value: 'Declaration dated January 10, 2023', status: 'compliant' },
+                    { name: 'REACH Compliance', value: 'Present', status: 'compliant' },
+                ]
+            },
+            {
+                title: 'Quality & Performance',
+                status: 'compliant',
+                items: [
+                    { name: 'On-Time Delivery', value: 'Minimum 90%', status: 'compliant' },
+                    { name: 'Quality Compliance', value: 'Minimum 95%', status: 'compliant' },
+                    { name: 'Response Time', value: 'Maximum 48 hours', status: 'compliant' },
+                    { name: 'Quality Management System', value: 'Documented', status: 'compliant' },
+                ]
+            },
+            {
+                title: 'Commercial Terms',
+                status: 'compliant',
+                items: [
+                    { name: 'Payment Terms', value: 'Net 30 days from date of invoice', status: 'compliant' },
+                    { name: 'Discount Structure', value: '7.5% for orders exceeding MOQ by 50% or more', status: 'compliant' },
+                    { name: 'Price Category', value: 'Premium', status: 'compliant' },
+                    { name: 'Shipping Terms', value: 'FCA Shanghai (Incoterms 2020)', status: 'compliant' },
+                ]
+            },
+            {
+                title: 'Legal Framework',
+                status: 'compliant',
+                items: [
+                    { name: 'Confidentiality', value: '5-year protection period post-termination', status: 'compliant' },
+                    { name: 'Force Majeure', value: 'Included with standard provisions', status: 'compliant' },
+                    { name: 'Governing Law', value: 'Singapore', status: 'compliant' },
+                    { name: 'Dispute Resolution', value: 'Arbitration in Singapore (SIAC Rules)', status: 'compliant' },
+                ]
+            },
+            {
+                title: 'Verification Status',
+                status: 'compliant',
+                items: [
+                    { name: 'Certification Verification', value: 'Verified with certification bodies', status: 'compliant' },
+                    { name: 'Document Inspection', value: 'Conducted on February 28, 2023', status: 'compliant' },
+                    { name: 'On-site Audit', value: 'Completed on January 15, 2023', status: 'compliant' },
+                    { name: 'Next Scheduled Verification', value: 'August 15, 2023', status: 'review', notes: 'Verification date has passed' },
                 ]
             }
         ],
         recommendations: [
-            'Renegotiate liability cap to at least 100% of contract value',
-            'Extend warranty period to standard 12 months minimum',
-            'Revise termination clause to align with company policy of 30 days notice',
-            'Enhance data protection clauses to include specific GDPR requirements',
-            'Add specific security standards for data handling'
+            'Initiate contract renewal process as the current agreement expired on March 15, 2024',
+            'Verify current status of ISO 14001:2015 certification (expires November 15, 2024)',
+            'Schedule a new verification audit (last scheduled for August 15, 2023)',
+            'Confirm if any product specifications in Attachment A need updates for the renewal',
+            'Review price structures to ensure they remain competitive in current market conditions'
         ]
     };
 
